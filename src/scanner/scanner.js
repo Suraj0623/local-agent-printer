@@ -107,27 +107,33 @@ async function scanSubnet(subnet, ports, timeout) {
     timeout,
   });
 
-  // Build every ip×port probe with concurrency limiting
+  // Build every ip×port probe.
+  // IMPORTANT: attach .catch() immediately on each promise before pushing it
+  // into the array. Without this, Node.js fires PromiseRejectionHandledWarning
+  // for every connection-refused/timeout rejection that occurs in the brief gap
+  // between promise creation and Promise.allSettled() attaching its handler.
+  // We normalise each probe to always resolve: { ip, port, responseMs } | null.
   const probes = [];
   const MAX_CONCURRENT = 50; // Prevent socket exhaustion
-  
+
   for (let i = 1; i <= 254; i++) {
     for (const port of ports) {
-      probes.push(probeHost(`${subnet}.${i}`, port, timeout));
-      // Simple concurrency control: wait if too many pending
+      probes.push(probeHost(`${subnet}.${i}`, port, timeout).catch(() => null));
+      // Simple concurrency control: yield if too many pending
       if (probes.length % MAX_CONCURRENT === 0) {
         await new Promise(res => setImmediate(res));
       }
     }
   }
 
-  const results = await Promise.allSettled(probes);
+  // All probes now resolve (never reject), so Promise.all is safe and clean.
+  const settled = await Promise.all(probes);
 
-  // Group open ports by IP
+  // Group open ports by IP (null entries = failed probes, skip them)
   const byIp = new Map(); // ip → { ports: Set, minMs: number }
-  for (const r of results) {
-    if (r.status !== "fulfilled") continue;
-    const { ip, port, responseMs } = r.value;
+  for (const r of settled) {
+    if (!r) continue;
+    const { ip, port, responseMs } = r;
     if (!byIp.has(ip)) byIp.set(ip, { ports: new Set(), minMs: responseMs });
     byIp.get(ip).ports.add(port);
     byIp.get(ip).minMs = Math.min(byIp.get(ip).minMs, responseMs);
@@ -295,7 +301,7 @@ function _discoverLpstat() {
 
 /**
  * Enumerate USB printers.
- * Windows → PowerShell USB printer ports (USB001, USB002, etc.)
+ * Windows → PowerShell: join USB ports with Get-Printer to get real printer names
  * Linux → /dev/usb/lpX device files
  *
  * @returns {Promise<Array>}
@@ -305,19 +311,32 @@ async function discoverUsbDevices() {
 }
 
 /**
- * Windows: Detect USB printer ports via PowerShell
- * Returns ports like USB001, USB002 that are used by installed printers
+ * Windows: Detect USB printer ports and cross-reference with installed printers
+ * so that osPrinterName is populated — enabling accurate thermal vs A4 detection.
+ *
+ * Key fix: previously osPrinterName was always null for USB entries, causing every
+ * USB device to be classified as POS. Now we join Get-PrinterPort with Get-Printer
+ * so e.g. USB001 → "Canon LBP2900" → classified as A4.
  */
 function _discoverWindowsUsb() {
   return new Promise((resolve) => {
-    // Query printer ports that are USB-based
+    // Join USB printer ports with the printers attached to them.
+    // This gives us the real printer name for accurate type classification.
     const ps = `
-      Get-PrinterPort | 
-      Where-Object { $_.PortNumber -like 'USB*' -or $_.Name -like 'USB*' } | 
-      Select-Object Name, PortNumber, PrinterHost, Description | 
-      ConvertTo-Json
-    `;
-    
+$ports = Get-PrinterPort | Where-Object { $_.Name -like 'USB*' };
+$printers = Get-Printer | Select-Object Name, PortName, DriverName;
+$result = $ports | ForEach-Object {
+  $port = $_;
+  $printer = $printers | Where-Object { $_.PortName -eq $port.Name } | Select-Object -First 1;
+  [PSCustomObject]@{
+    PortName    = $port.Name;
+    PrinterName = if ($printer) { $printer.Name } else { $null };
+    DriverName  = if ($printer) { $printer.DriverName } else { $null };
+  }
+};
+$result | ConvertTo-Json
+`.trim();
+
     execFile("powershell", ["-NoProfile", "-Command", ps], { timeout: 10000 }, (err, stdout) => {
       if (err) {
         logger.warn("Scanner: PowerShell USB port query failed", { error: err.message });
@@ -325,29 +344,32 @@ function _discoverWindowsUsb() {
       }
 
       try {
-        let raw = JSON.parse(stdout.trim());
+        const text = (stdout || "").trim();
+        if (!text) return resolve([]);
+
+        let raw = JSON.parse(text);
         if (!Array.isArray(raw)) raw = [raw];
 
         const printers = raw
-          .filter(p => p.PortNumber || p.Name) // Ensure we have an identifier
-          .map(p => {
-            const portId = p.PortNumber || p.Name;
-            return {
-              ip:            null,
-              ports:         [],
-              source:        "usb",
-              osPrinterName: null,
-              usbPath:       portId,           // e.g., "USB001"
-              portName:      p.Name,
-              portNumber:    p.PortNumber,
-              printerHost:   p.PrinterHost || null,
-              description:   p.Description || null,
-              windowsPort:   9101,             // Suggest loopback port for raw printing
-              note:          "Use OS Printers tab for spooler-based printing, or assign as USB for raw ESC/POS",
-            };
-          });
+          .filter(p => p.PortName)
+          .map(p => ({
+            ip:            null,
+            ports:         [],
+            source:        "usb",
+            // ← This is the critical fix: populate osPrinterName from Get-Printer join
+            // so classifyDevice() / _looksLikeThermal() can correctly type the device
+            osPrinterName: p.PrinterName || null,
+            driverName:    p.DriverName  || null,
+            usbPath:       p.PortName,   // e.g. "USB001"
+            portName:      p.PortName,
+            windowsPort:   9101,
+            note:          "Use OS Printers tab for spooler-based printing, or assign as USB for raw ESC/POS",
+          }));
 
-        logger.info("Scanner: Windows USB printer ports found", { count: printers.length });
+        logger.info("Scanner: Windows USB printer ports found", {
+          count:    printers.length,
+          printers: printers.map(p => `${p.usbPath} → ${p.osPrinterName || "unknown"}`),
+        });
         resolve(printers);
       } catch (parseErr) {
         logger.warn("Scanner: failed to parse PowerShell USB output", { error: parseErr.message });
@@ -391,7 +413,7 @@ async function _discoverLinuxUsb() {
         source:        "usb",
         osPrinterName: null,
         usbPath,
-        permissions:   "unknown", // Could check fs.accessSync for readability
+        permissions:   "unknown",
       });
     }
   } catch (err) {

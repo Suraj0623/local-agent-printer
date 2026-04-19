@@ -51,26 +51,22 @@ const PORT_CONNECTION_TYPE = {
  * Thermal/POS printer name keywords.
  * When a printer is OS-discovered and its name matches any of these,
  * it is classified as pos/driver instead of a4/driver.
- *
- * Covers: Epson TM series, Star TSP/BSC, Bixolon, Custom, Citizen CT,
- *         generic "POS", "thermal", "receipt", "80mm", "58mm", and
- *         common model numbers like POS-80, RP80, MP-T20, XP-80 etc.
  */
 const THERMAL_NAME_PATTERNS = [
-  /\bTM[-_]?\w/i,           // Epson TM-T20, TM-U220, TM-m30 …
-  /\bTSP\d/i,               // Star TSP100, TSP650 …
-  /\bBSC\d/i,               // Star BSC series
+  /\bTM[-_]?\w/i,
+  /\bTSP\d/i,
+  /\bBSC\d/i,
   /\bBixolon\b/i,
-  /\bSRP[-_]?\d/i,          // Bixolon SRP-350
-  /\bSP[-_]?\d{3}/i,        // Star SP700
-  /\bCT[-_]S\d/i,           // Citizen CT-S series
-  /\bCBM\d/i,               // Citizen CBM
-  /\bRP[-_]?\d{2}/i,        // RP80, RP58 …
-  /\bMP[-_]?T\d/i,          // Epson MP-T20
-  /\bXP[-_]?\d{2}/i,        // Xprinter XP-80
-  /\bPOS[-_]?\d/i,          // POS-80, POS-58 …
-  /\b80[Cc]\b/,             // POS-80C, generic 80C
-  /\b58[Cc]\b/,             // 58C receipt printers
+  /\bSRP[-_]?\d/i,
+  /\bSP[-_]?\d{3}/i,
+  /\bCT[-_]S\d/i,
+  /\bCBM\d/i,
+  /\bRP[-_]?\d{2}/i,
+  /\bMP[-_]?T\d/i,
+  /\bXP[-_]?\d{2}/i,
+  /\bPOS[-_]?\d/i,
+  /\b80[Cc]\b/,
+  /\b58[Cc]\b/,
   /\bthermal\b/i,
   /\breceipt\b/i,
   /\bkitchen\b/i,
@@ -92,14 +88,15 @@ function _looksLikeThermal(name) {
  * Classify a discovered device into connection_type and printer_type.
  *
  * Priority order:
- *   1. Explicit USB path            → usb_raw / pos
+ *   1. Explicit USB path            → usb_raw / inferred from name (or pos if unknown)
  *   2. OS source + thermal name     → driver  / pos
  *   3. OS source (generic)          → driver  / a4
  *   4. LAN open ports               → raw|ipp|lpd / pos|a4
  *   5. Fallback                     → raw / pos
  *
- * The caller (UI assign modal) can always override printer_type
- * explicitly via the `printerTypeOverride` field.
+ * KEY FIX: USB devices with an osPrinterName (populated by scanner's Get-Printer
+ * join on Windows) now use name-based thermal detection instead of blindly
+ * defaulting to "pos". e.g. USB001 → "Canon LBP2900" → a4, not pos.
  *
  * @param {object} device  unified scanner output
  * @param {string} [printerTypeOverride]  "pos" | "a4" — explicit user choice
@@ -108,15 +105,21 @@ function _looksLikeThermal(name) {
 function classifyDevice(device, printerTypeOverride) {
   // ── 1. Explicit USB device path ───────────────────────────────────────────
   if (device.usbPath && device.source === "usb") {
+    // If the USB port has an associated printer name (populated by scanner.js
+    // via Get-Printer join on Windows), use name-based thermal detection.
+    // Fall back to "pos" only when the printer name is completely unknown.
+    const inferredType = device.osPrinterName
+      ? (_looksLikeThermal(device.osPrinterName) ? "pos" : "a4")
+      : "pos";  // no name info → assume thermal (safe default for bare USB ports)
+
     return {
       connection_type: "usb_raw",
-      printer_type:    printerTypeOverride || "pos",
+      printer_type:    printerTypeOverride || inferredType,
     };
   }
 
   // ── 2 & 3. OS-managed (spooler / CUPS queue) ──────────────────────────────
   if (device.source === "os" || device.osPrinterName) {
-    // Name-based thermal detection — fixes POS-80C, Epson TM-*, Star TSP-* etc.
     const inferredType = _looksLikeThermal(device.osPrinterName) ? "pos" : "a4";
     return {
       connection_type: "driver",
@@ -192,16 +195,6 @@ function _store(printerId, fields) {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/**
- * Assign a network-discovered printer (LAN).
- *
- * @param {string} role     "main" | "kitchen" | "standard"
- * @param {string} ip
- * @param {number} port
- * @param {string} label
- * @param {number} vendorId
- * @param {object} [deviceHints]  optional: { ports, source } from scanner
- */
 function assign(role, ip, port, label, vendorId, deviceHints = {}) {
   if (!ROLES[role]) throw new Error(`Invalid role "${role}". Must be: ${Object.keys(ROLES).join(", ")}`);
   if (!ip || !port) throw new Error("ip and port are required");
@@ -227,9 +220,6 @@ function assign(role, ip, port, label, vendorId, deviceHints = {}) {
   });
 }
 
-/**
- * Assign a USB printer (direct device write).
- */
 function assignUsb(role, device, label, vendorId) {
   if (!ROLES[role]) throw new Error(`Invalid role "${role}". Must be: ${Object.keys(ROLES).join(", ")}`);
 
@@ -250,15 +240,6 @@ function assignUsb(role, device, label, vendorId) {
   });
 }
 
-/**
- * Assign a CUPS-managed printer (Linux/Mac IPP queue).
- *
- * @param {string} role
- * @param {string} cupsName   CUPS queue name  e.g. "Canon_G3070"
- * @param {string} label
- * @param {number} vendorId
- * @param {string} [ip]       optional IP from scanner enrichment
- */
 function assignCups(role, cupsName, label, vendorId, ip, printerTypeOverride) {
   if (!ROLES[role]) throw new Error(`Invalid role "${role}". Must be: ${Object.keys(ROLES).join(", ")}`);
   if (!cupsName) throw new Error("cupsName is required");
@@ -282,15 +263,6 @@ function assignCups(role, cupsName, label, vendorId, ip, printerTypeOverride) {
   });
 }
 
-/**
- * Assign a Windows spooler printer.
- *
- * @param {string} role
- * @param {string} windowsPrinterName   e.g. "Canon G3070 series"
- * @param {string} label
- * @param {number} vendorId
- * @param {string} [ip]
- */
 function assignWindowsSpooler(role, windowsPrinterName, label, vendorId, ip, printerTypeOverride) {
   if (!ROLES[role]) throw new Error(`Invalid role "${role}". Must be: ${Object.keys(ROLES).join(", ")}`);
   if (!windowsPrinterName) throw new Error("windowsPrinterName is required");
@@ -313,17 +285,14 @@ function assignWindowsSpooler(role, windowsPrinterName, label, vendorId, ip, pri
   });
 }
 
-/** Look up printer config by ID (called by poller). */
 function lookup(printerId) {
   return store.get(String(printerId)) || null;
 }
 
-/** List all assigned printers. */
 function list() {
   return [...store.values()];
 }
 
-/** Remove a printer assignment. */
 function remove(printerId) {
   const existed = store.delete(printerId);
   if (existed) {
@@ -333,7 +302,6 @@ function remove(printerId) {
   return existed;
 }
 
-/** Return suggested IDs to display in setup UI. */
 function getSuggestedIds(vendorId) {
   vendorId = vendorId || config.vendorId;
   return {
@@ -343,7 +311,6 @@ function getSuggestedIds(vendorId) {
   };
 }
 
-// Load on module init
 loadFromDisk();
 
 module.exports = {
