@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * uiServer.js — Phase 3 (multi-source discovery)
+ * uiServer.js — Phase 3 (multi-source discovery) + WebSocket Monitor
  *
  * Express server on localhost:3001 (never exposed to internet).
  *
@@ -26,7 +26,7 @@ const fs       = require("fs");
 const axios    = require("axios");
 const logger   = require("../utils/logger");
 const config   = require("../utils/config");
-
+const { attachStatusMonitor } = require("./statusMonitor");
 const {
   scanAllNetworks,
   discoverOsPrinters,
@@ -42,6 +42,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
+
+// Attach the WebSocket status monitor dashboard and API endpoints
+attachStatusMonitor(app);
 
 // ── GET /api/config ──────────────────────────────────────────────────────────
 app.get("/api/config", (req, res) => {

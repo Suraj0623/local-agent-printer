@@ -1,1163 +1,1515 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Print Agent — Setup Wizard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-  /* ── Reset & base ──────────────────────────────────────────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg:        #0b0d10;
-    --surface:   #13161b;
-    --surface2:  #1a1e25;
-    --border:    #252a33;
-    --accent:    #00e5a0;
-    --accent2:   #0095ff;
-    --warn:      #ff6b35;
-    --text:      #e2e8f0;
-    --muted:     #64748b;
-    --pos-color: #00e5a0;
-    --a4-color:  #0095ff;
-    --usb-color: #f59e0b;
-    --os-color:  #a78bfa;
-    --radius:    8px;
-    --font-head: 'Syne', sans-serif;
-    --font-mono: 'DM Mono', monospace;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Print Agent — Setup Wizard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-  html, body { height: 100%; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    line-height: 1.6;
-  }
+    :root {
+      --bg: #0b0d10;
+      --surface: #13161b;
+      --surface2: #1a1e25;
+      --border: #252a33;
+      --accent: #00e5a0;
+      --accent2: #0095ff;
+      --warn: #ff6b35;
+      --danger: #ff4444;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --pos-color: #00e5a0;
+      --a4-color: #0095ff;
+      --usb-color: #f59e0b;
+      --os-color: #a78bfa;
+      --radius: 8px;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
 
-  /* ── Layout ────────────────────────────────────────────────────────── */
-  .shell {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    grid-template-rows: 56px 1fr;
-    height: 100vh;
-    overflow: hidden;
-  }
+    html,
+    body {
+      height: 100%;
+    }
 
-  /* ── Top bar ───────────────────────────────────────────────────────── */
-  .topbar {
-    grid-column: 1 / -1;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 0 24px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    z-index: 10;
-  }
-  .topbar-logo {
-    font-family: var(--font-head);
-    font-weight: 800;
-    font-size: 15px;
-    letter-spacing: -0.02em;
-    color: var(--text);
-  }
-  .topbar-logo span { color: var(--accent); }
-  .topbar-sep { flex: 1; }
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--muted);
-    transition: background .3s;
-  }
-  .status-dot.ok  { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-  .status-dot.err { background: var(--warn);   box-shadow: 0 0 8px var(--warn); }
-  .status-label { color: var(--muted); font-size: 11px; letter-spacing: .05em; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+    }
 
-  /* ── Sidebar ───────────────────────────────────────────────────────── */
-  .sidebar {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 16px 0;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .sidebar-section {
-    padding: 8px 16px 4px;
-    font-size: 10px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 16px;
-    cursor: pointer;
-    border-radius: 0;
-    color: var(--muted);
-    transition: background .15s, color .15s;
-    font-size: 12px;
-    letter-spacing: .02em;
-    border-left: 2px solid transparent;
-    user-select: none;
-  }
-  .nav-item:hover { background: var(--surface2); color: var(--text); }
-  .nav-item.active {
-    background: var(--surface2);
-    color: var(--text);
-    border-left-color: var(--accent);
-  }
-  .nav-icon { font-size: 14px; width: 18px; text-align: center; }
-  .badge {
-    margin-left: auto;
-    background: var(--border);
-    color: var(--muted);
-    font-size: 10px;
-    padding: 1px 6px;
-    border-radius: 99px;
-    min-width: 18px;
-    text-align: center;
-  }
-  .badge.live { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+    .shell {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      grid-template-rows: 56px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
 
-  /* ── Main content ──────────────────────────────────────────────────── */
-  .main {
-    overflow-y: auto;
-    padding: 28px 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
+    /* Topbar */
+    .topbar {
+      grid-column: 1/-1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
 
-  /* ── Panel ─────────────────────────────────────────────────────────── */
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-  .panel-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-  }
-  .panel-title {
-    font-family: var(--font-head);
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--text);
-  }
-  .panel-body { padding: 18px; }
+    .topbar-logo {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: -.02em;
+    }
 
-  /* ── Form elements ─────────────────────────────────────────────────── */
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
-  .form-full { grid-column: 1 / -1; }
-  label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
-  input, select {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 12px;
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    outline: none;
-    transition: border-color .2s;
-  }
-  input:focus, select:focus { border-color: var(--accent); }
-  input::placeholder { color: var(--muted); }
-  select option { background: var(--surface2); }
+    .topbar-logo span {
+      color: var(--accent);
+    }
 
-  /* ── Buttons ───────────────────────────────────────────────────────── */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 500;
-    transition: opacity .15s, transform .1s;
-    letter-spacing: .03em;
-    white-space: nowrap;
-  }
-  .btn:active { transform: scale(0.97); }
-  .btn:disabled { opacity: .4; cursor: default; }
-  .btn-primary { background: var(--accent); color: #000; }
-  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-  .btn-danger { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); }
-  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-  .btn-sm { padding: 5px 10px; font-size: 11px; }
-  .btn-loader { display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+    .topbar-sep {
+      flex: 1;
+    }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background .3s;
+    }
 
-  /* ── Device table ──────────────────────────────────────────────────── */
-  .device-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .device-table th {
-    text-align: left;
-    padding: 8px 12px;
-    background: var(--surface2);
-    color: var(--muted);
-    font-size: 10px;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-    font-weight: 400;
-    border-bottom: 1px solid var(--border);
-  }
-  .device-table td {
-    padding: 10px 12px;
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
-    vertical-align: middle;
-  }
-  .device-table tr:last-child td { border-bottom: none; }
-  .device-table tr:hover td { background: color-mix(in srgb, var(--surface2) 40%, transparent); }
+    .status-dot.ok {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
 
-  /* ── Source badge ──────────────────────────────────────────────────── */
-  .source-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 99px;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-  }
-  .source-lan  { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
-  .source-os   { background: color-mix(in srgb, var(--os-color) 15%, transparent); color: var(--os-color); }
-  .source-usb  { background: color-mix(in srgb, var(--usb-color) 15%, transparent); color: var(--usb-color); }
-  .source-manual { background: color-mix(in srgb, var(--accent2) 15%, transparent); color: var(--accent2); }
+    .status-dot.err {
+      background: var(--warn);
+      box-shadow: 0 0 8px var(--warn);
+    }
 
-  /* ── Connection type pill ──────────────────────────────────────────── */
-  .conn-badge {
-    display: inline-flex; align-items: center; gap: 3px;
-    padding: 1px 7px; border-radius: 4px; font-size: 10px;
-    background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
-  }
-  .conn-raw { border-color: color-mix(in srgb, var(--pos-color) 40%, transparent); color: var(--pos-color); }
-  .conn-ipp, .conn-cups { border-color: color-mix(in srgb, var(--a4-color) 40%, transparent); color: var(--a4-color); }
-  .conn-lpd { border-color: color-mix(in srgb, var(--a4-color) 30%, transparent); color: var(--a4-color); opacity:.8; }
-  .conn-driver,.conn-winspooler { border-color: color-mix(in srgb, var(--os-color) 40%, transparent); color: var(--os-color); }
-  .conn-usb,.conn-usb_raw { border-color: color-mix(in srgb, var(--usb-color) 40%, transparent); color: var(--usb-color); }
+    .status-label {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .05em;
+    }
 
-  /* ── Ports column ──────────────────────────────────────────────────── */
-  .ports-list { display: flex; flex-wrap: wrap; gap: 4px; }
-  .port-chip {
-    padding: 1px 6px; border-radius: 4px; font-size: 10px;
-    background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
-  }
-  .port-chip.raw { border-color: color-mix(in srgb,var(--pos-color) 40%,transparent); color: var(--pos-color); }
-  .port-chip.ipp { border-color: color-mix(in srgb,var(--a4-color) 40%,transparent); color: var(--a4-color); }
-  .port-chip.lpd { border-color: color-mix(in srgb,var(--a4-color) 30%,transparent); color: var(--a4-color); opacity:.7; }
-  .port-chip.web { border-color: color-mix(in srgb,var(--muted) 40%,transparent); }
+    .ws-pill {
+      padding: 2px 10px;
+      border-radius: 99px;
+      font-size: 11px;
+      letter-spacing: .04em;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
 
-  /* ── Toast ─────────────────────────────────────────────────────────── */
-  #toast-wrap { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; pointer-events: none; }
-  .toast {
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-size: 12px;
-    max-width: 340px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    animation: slide-in .25s ease;
-    pointer-events: auto;
-  }
-  .toast.success { border-color: color-mix(in srgb,var(--accent) 40%,transparent); color: var(--accent); }
-  .toast.error   { border-color: color-mix(in srgb,var(--warn) 40%,transparent); color: var(--warn); }
-  .toast.info    { border-color: color-mix(in srgb,var(--accent2) 40%,transparent); color: var(--accent2); }
-  @keyframes slide-in { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: none; } }
+    .ws-pill.ok {
+      border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 8%, transparent);
+    }
 
-  /* ── Empty state ───────────────────────────────────────────────────── */
-  .empty { padding: 40px; text-align: center; color: var(--muted); }
-  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+    .ws-pill.warn {
+      border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+      color: var(--warn);
+      background: color-mix(in srgb, var(--warn) 8%, transparent);
+    }
 
-  /* ── Tabs ──────────────────────────────────────────────────────────── */
-  .page { display: none; }
-  .page.active { display: flex; flex-direction: column; gap: 20px; }
+    .ws-pill.err {
+      border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+      color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 8%, transparent);
+    }
 
-  /* ── Inline toolbar ────────────────────────────────────────────────── */
-  .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* Sidebar */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 16px 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
 
-  /* ── Assigned row highlight ────────────────────────────────────────── */
-  tr.is-assigned td:first-child { border-left: 2px solid var(--accent); }
+    .sidebar-section {
+      padding: 8px 16px 4px;
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
 
-  /* ── Monospace code ────────────────────────────────────────────────── */
-  .id-chip {
-    font-family: var(--font-mono); font-size: 11px;
-    padding: 2px 8px; border-radius: 4px;
-    background: var(--surface2); border: 1px solid var(--border);
-    cursor: pointer; user-select: all;
-  }
-  .id-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .sidebar-divider {
+      margin: 8px 16px;
+      border: none;
+      border-top: 1px solid var(--border);
+    }
 
-  /* ── Scrollbar ─────────────────────────────────────────────────────── */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 16px;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .02em;
+      border-left: 2px solid transparent;
+      transition: background .15s, color .15s;
+      user-select: none;
+    }
 
-  /* ── Assign modal ──────────────────────────────────────────────────── */
-  .modal-backdrop {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,.7);
-    z-index: 500; align-items: center; justify-content: center;
-  }
-  .modal-backdrop.open { display: flex; }
-  .modal {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px; padding: 24px; min-width: 380px; max-width: 480px; width: 90%;
-  }
-  .modal-title { font-family: var(--font-head); font-size: 15px; font-weight: 700; margin-bottom: 16px; }
-  .modal-row { margin-bottom: 14px; }
-  .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-</style>
+    .nav-item:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: var(--surface2);
+      color: var(--text);
+      border-left-color: var(--accent);
+    }
+
+    .nav-item.monitor-nav {
+      color: var(--accent2);
+    }
+
+    .nav-item.monitor-nav:hover {
+      background: color-mix(in srgb, var(--accent2) 8%, transparent);
+      border-left-color: var(--accent2);
+    }
+
+    .nav-item.monitor-nav.active {
+      background: color-mix(in srgb, var(--accent2) 10%, transparent);
+      border-left-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    .nav-icon {
+      font-size: 14px;
+      width: 18px;
+      text-align: center;
+    }
+
+    .badge {
+      margin-left: auto;
+      background: var(--border);
+      color: var(--muted);
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 99px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    .badge.live {
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
+      color: var(--accent);
+    }
+
+    .badge.live-blue {
+      background: color-mix(in srgb, var(--accent2) 20%, transparent);
+      color: var(--accent2);
+    }
+
+    /* Main */
+    .main {
+      overflow-y: auto;
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Panel */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-title {
+      font-family: var(--font-head);
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .panel-body {
+      padding: 18px;
+    }
+
+    /* Forms */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-grid.three {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .form-full {
+      grid-column: 1/-1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    input,
+    select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--accent);
+    }
+
+    input::placeholder {
+      color: var(--muted);
+    }
+
+    select option {
+      background: var(--surface2);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      transition: opacity .15s, transform .1s;
+      letter-spacing: .03em;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-danger {
+      background: color-mix(in srgb, var(--warn) 15%, transparent);
+      color: var(--warn);
+      border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+
+    .btn-loader {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Device table */
+    .device-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .device-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      font-weight: 400;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .device-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+      vertical-align: middle;
+    }
+
+    .device-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .device-table tr:hover td {
+      background: color-mix(in srgb, var(--surface2) 40%, transparent);
+    }
+
+    tr.is-assigned td:first-child {
+      border-left: 2px solid var(--accent);
+    }
+
+    /* Badges */
+    .source-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .source-lan {
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      color: var(--accent);
+    }
+
+    .source-os {
+      background: color-mix(in srgb, var(--os-color) 15%, transparent);
+      color: var(--os-color);
+    }
+
+    .source-usb {
+      background: color-mix(in srgb, var(--usb-color) 15%, transparent);
+      color: var(--usb-color);
+    }
+
+    .source-manual {
+      background: color-mix(in srgb, var(--accent2) 15%, transparent);
+      color: var(--accent2);
+    }
+
+    .conn-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .conn-raw {
+      border-color: color-mix(in srgb, var(--pos-color) 40%, transparent);
+      color: var(--pos-color);
+    }
+
+    .conn-ipp,
+    .conn-cups {
+      border-color: color-mix(in srgb, var(--a4-color) 40%, transparent);
+      color: var(--a4-color);
+    }
+
+    .conn-lpd {
+      border-color: color-mix(in srgb, var(--a4-color) 30%, transparent);
+      color: var(--a4-color);
+      opacity: .8;
+    }
+
+    .conn-driver,
+    .conn-winspooler {
+      border-color: color-mix(in srgb, var(--os-color) 40%, transparent);
+      color: var(--os-color);
+    }
+
+    .conn-usb,
+    .conn-usb_raw {
+      border-color: color-mix(in srgb, var(--usb-color) 40%, transparent);
+      color: var(--usb-color);
+    }
+
+    .ports-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .port-chip {
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .port-chip.raw {
+      border-color: color-mix(in srgb, var(--pos-color) 40%, transparent);
+      color: var(--pos-color);
+    }
+
+    .port-chip.ipp {
+      border-color: color-mix(in srgb, var(--a4-color) 40%, transparent);
+      color: var(--a4-color);
+    }
+
+    .port-chip.lpd {
+      border-color: color-mix(in srgb, var(--a4-color) 30%, transparent);
+      color: var(--a4-color);
+      opacity: .7;
+    }
+
+    .port-chip.web {
+      border-color: color-mix(in srgb, var(--muted) 40%, transparent);
+    }
+
+    .id-chip {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      user-select: all;
+    }
+
+    .id-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Toast */
+    #toast-wrap {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      max-width: 340px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      animation: slide-in .25s ease;
+      pointer-events: auto;
+    }
+
+    .toast.success {
+      border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+      color: var(--accent);
+    }
+
+    .toast.error {
+      border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+      color: var(--warn);
+    }
+
+    .toast.info {
+      border-color: color-mix(in srgb, var(--accent2) 40%, transparent);
+      color: var(--accent2);
+    }
+
+    @keyframes slide-in {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .empty {
+      padding: 40px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .empty-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .7);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      min-width: 380px;
+      max-width: 480px;
+      width: 90%;
+    }
+
+    .modal-title {
+      font-family: var(--font-head);
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .modal-row {
+      margin-bottom: 14px;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    /* ── Monitor-specific ── */
+    .mon-grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .mon-stat {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+
+    .mon-stat-value {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .mon-stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .mon-stat.done .mon-stat-value {
+      color: var(--accent);
+    }
+
+    .mon-stat.failed .mon-stat-value {
+      color: var(--danger);
+    }
+
+    .mon-stat.pending .mon-stat-value {
+      color: var(--warn);
+    }
+
+    .mon-stat.dupes .mon-stat-value {
+      color: var(--muted);
+    }
+
+    .ws-state {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    .ws-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background .4s;
+    }
+
+    .ws-dot.connected {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .ws-dot.connecting {
+      background: var(--warn);
+      animation: pulse .9s ease-in-out infinite;
+    }
+
+    .ws-dot.disconnected,
+    .ws-dot.failed {
+      background: var(--danger);
+    }
+
+    .ws-dot.initialized {
+      background: var(--muted);
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    .ws-state-label {
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .ws-state-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .channel-chip {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 5px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--accent2);
+      user-select: all;
+      cursor: pointer;
+    }
+
+    .channel-chip:hover {
+      border-color: var(--accent2);
+    }
+
+    .mon-banner {
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mon-banner.warn {
+      background: color-mix(in srgb, var(--warn) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+      color: var(--warn);
+    }
+
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .log-table th {
+      text-align: left;
+      padding: 6px 10px;
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      font-weight: 400;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .log-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+      vertical-align: top;
+    }
+
+    .log-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .err-msg {
+      color: var(--danger);
+      font-size: 11px;
+      margin-top: 2px;
+      opacity: .85;
+    }
+
+    .tag {
+      display: inline-flex;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      letter-spacing: .04em;
+    }
+
+    .tag.kitchen {
+      background: color-mix(in srgb, var(--accent2) 15%, transparent);
+      color: var(--accent2);
+    }
+
+    .tag.main {
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      color: var(--accent);
+    }
+
+    .tag.standard {
+      background: color-mix(in srgb, #a78bfa 15%, transparent);
+      color: #a78bfa;
+    }
+  </style>
 </head>
+
 <body>
+  <div class="shell">
 
-<div class="shell">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-logo">PRINT<span>AGENT</span></div>
+      <div class="topbar-sep"></div>
+      <!-- Wizard status (hidden on monitor page) -->
+      <div id="status-dot" class="status-dot"></div>
+      <span id="status-label" class="status-label">checking config…</span>
+      <!-- Monitor status (hidden on wizard pages) -->
+      <span id="mon-topbar-note" style="display:none;font-size:11px;color:var(--muted)">—</span>
+      <div id="mon-topbar-pill" class="ws-pill" style="display:none">WS —</div>
+    </header>
 
-  <!-- Top bar -->
-  <header class="topbar">
-    <div class="topbar-logo">PRINT<span>AGENT</span></div>
-    <div class="topbar-sep"></div>
-    <div id="status-dot" class="status-dot"></div>
-    <span id="status-label" class="status-label">checking config…</span>
-  </header>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-section">Discovery</div>
+      <div class="nav-item active" data-page="lan" onclick="showPage('lan',this)">
+        <span class="nav-icon">📡</span> LAN Scan
+        <span class="badge" id="badge-lan">—</span>
+      </div>
+      <div class="nav-item" data-page="os" onclick="showPage('os',this)">
+        <span class="nav-icon">🖥</span> OS Printers
+        <span class="badge" id="badge-os">—</span>
+      </div>
+      <div class="nav-item" data-page="usb" onclick="showPage('usb',this)">
+        <span class="nav-icon">🔌</span> USB Devices
+        <span class="badge" id="badge-usb">—</span>
+      </div>
+      <div class="nav-item" data-page="manual" onclick="showPage('manual',this)">
+        <span class="nav-icon">✏️</span> Manual Add
+      </div>
 
-  <!-- Sidebar nav -->
-  <nav class="sidebar">
-    <div class="sidebar-section">Discovery</div>
-    <div class="nav-item active" data-page="lan" onclick="showPage('lan',this)">
-      <span class="nav-icon">📡</span> LAN Scan
-      <span class="badge" id="badge-lan">—</span>
-    </div>
-    <div class="nav-item" data-page="os" onclick="showPage('os',this)">
-      <span class="nav-icon">🖥</span> OS Printers
-      <span class="badge" id="badge-os">—</span>
-    </div>
-    <div class="nav-item" data-page="usb" onclick="showPage('usb',this)">
-      <span class="nav-icon">🔌</span> USB Devices
-      <span class="badge" id="badge-usb">—</span>
-    </div>
-    <div class="nav-item" data-page="manual" onclick="showPage('manual',this)">
-      <span class="nav-icon">✏️</span> Manual Add
-    </div>
+      <div class="sidebar-section" style="margin-top:12px">Management</div>
+      <div class="nav-item" data-page="assigned" onclick="showPage('assigned',this)">
+        <span class="nav-icon">🖨</span> Assigned
+        <span class="badge" id="badge-assigned">—</span>
+      </div>
+      <div class="nav-item" data-page="config" onclick="showPage('config',this)">
+        <span class="nav-icon">⚙️</span> Config
+      </div>
 
-    <div class="sidebar-section" style="margin-top:12px">Management</div>
-    <div class="nav-item" data-page="assigned" onclick="showPage('assigned',this)">
-      <span class="nav-icon">🖨</span> Assigned
-      <span class="badge" id="badge-assigned">—</span>
-    </div>
-    <div class="nav-item" data-page="config" onclick="showPage('config',this)">
-      <span class="nav-icon">⚙️</span> Config
-    </div>
-  </nav>
+      <hr class="sidebar-divider">
+      <div class="sidebar-section">Live</div>
+      <div class="nav-item monitor-nav" data-page="monitor" onclick="showPage('monitor',this)">
+        <span class="nav-icon">📊</span> Monitor
+        <span class="badge" id="badge-monitor">—</span>
+      </div>
+    </nav>
 
-  <!-- Main -->
-  <main class="main">
+    <!-- Main content -->
+    <main class="main">
 
-    <!-- ── LAN Scan ── -->
-    <div id="page-lan" class="page active">
-      <div class="panel">
-        <div class="panel-header">
-          <span class="nav-icon">📡</span>
-          <span class="panel-title">LAN Scan — Subnet Discovery</span>
-          <div class="toolbar" style="margin-left:auto">
-            <input id="extra-ports" placeholder="Extra ports: 9103,9200" style="width:180px">
-            <button class="btn btn-primary" onclick="runLanScan()">
-              <span id="lan-btn-inner">Scan Network</span>
-            </button>
+      <!-- LAN Scan -->
+      <div id="page-lan" class="page active">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="nav-icon">📡</span>
+            <span class="panel-title">LAN Scan — Subnet Discovery</span>
+            <div class="toolbar" style="margin-left:auto">
+              <input id="extra-ports" placeholder="Extra ports: 9103,9200" style="width:180px">
+              <button class="btn btn-primary" onclick="runLanScan()"><span id="lan-btn-inner">Scan
+                  Network</span></button>
+            </div>
+          </div>
+          <div class="panel-body" id="lan-results">
+            <div class="empty">
+              <div class="empty-icon">📡</div>Click <b>Scan Network</b> to discover printers on your LAN.
+            </div>
           </div>
         </div>
-        <div class="panel-body" id="lan-results">
-          <div class="empty"><div class="empty-icon">📡</div>Click <b>Scan Network</b> to discover printers on your LAN.</div>
+      </div>
+
+      <!-- OS Printers -->
+      <div id="page-os" class="page">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="nav-icon">🖥</span>
+            <span class="panel-title">OS Printer Discovery</span>
+            <button class="btn btn-primary" style="margin-left:auto" onclick="runOsScan()"><span
+                id="os-btn-inner">Discover OS Printers</span></button>
+          </div>
+          <div class="panel-body" id="os-results">
+            <div class="empty">
+              <div class="empty-icon">🖥</div>Click <b>Discover OS Printers</b> to query the system print spooler.
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- ── OS Printers ── -->
-    <div id="page-os" class="page">
-      <div class="panel">
-        <div class="panel-header">
-          <span class="nav-icon">🖥</span>
-          <span class="panel-title">OS Printer Discovery</span>
-          <button class="btn btn-primary" style="margin-left:auto" onclick="runOsScan()">
-            <span id="os-btn-inner">Discover OS Printers</span>
+      <!-- USB Devices -->
+      <div id="page-usb" class="page">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="nav-icon">🔌</span>
+            <span class="panel-title">USB Device Detection</span>
+            <button class="btn btn-primary" style="margin-left:auto" onclick="runUsbScan()"><span
+                id="usb-btn-inner">Detect USB Devices</span></button>
+          </div>
+          <div class="panel-body" id="usb-results">
+            <div class="empty">
+              <div class="empty-icon">🔌</div>Click <b>Detect USB Devices</b> to enumerate /dev/usb/lpX paths (Linux).
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Add -->
+      <div id="page-manual" class="page">
+        <div class="panel">
+          <div class="panel-header"><span class="nav-icon">🔍</span><span class="panel-title">Manual Probe</span></div>
+          <div class="panel-body">
+            <div class="form-grid three">
+              <div><label>IP Address</label><input id="probe-ip" placeholder="192.168.1.50"></div>
+              <div><label>Port</label><input id="probe-port" type="number" placeholder="9100"></div>
+              <div style="display:flex;align-items:flex-end">
+                <button class="btn btn-primary" style="width:100%" onclick="runProbe()"><span id="probe-btn-inner">Test
+                    Connectivity</span></button>
+              </div>
+            </div>
+            <div id="probe-result" style="margin-top:14px"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="nav-icon">➕</span><span class="panel-title">Add Network Printer
+              Manually</span></div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div><label>IP Address</label><input id="manual-ip" placeholder="192.168.1.50"></div>
+              <div><label>Port</label><input id="manual-port" type="number" value="9100"></div>
+              <div><label>Role</label>
+                <select id="manual-role">
+                  <option value="main">Main (thermal)</option>
+                  <option value="kitchen">Kitchen (thermal)</option>
+                  <option value="standard">Standard (A4)</option>
+                </select>
+              </div>
+              <div><label>Label</label><input id="manual-label" placeholder="e.g. Kitchen Epson TM-T20"></div>
+            </div>
+            <div style="margin-top:14px"><button class="btn btn-primary" onclick="manualAssign()">Assign
+                Printer</button></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="nav-icon">🖥</span><span class="panel-title">Add OS / CUPS / Windows
+              Printer</span></div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div><label>OS Printer Name</label><input id="os-printer-name" placeholder="e.g. Canon G3070 series">
+              </div>
+              <div><label>Role</label>
+                <select id="os-role">
+                  <option value="standard">Standard (A4)</option>
+                  <option value="main">Main (thermal)</option>
+                  <option value="kitchen">Kitchen (thermal)</option>
+                </select>
+              </div>
+              <div><label>Connection Type</label>
+                <select id="os-conn">
+                  <option value="cups">CUPS / IPP (Linux/Mac)</option>
+                  <option value="winspooler">Windows Spooler</option>
+                </select>
+              </div>
+              <div><label>Label</label><input id="os-label" placeholder="e.g. Front Desk Canon"></div>
+            </div>
+            <div style="margin-top:14px"><button class="btn btn-primary" onclick="manualAssignOs()">Assign OS
+                Printer</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assigned -->
+      <div id="page-assigned" class="page">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="nav-icon">🖨</span><span class="panel-title">Assigned Printers</span>
+            <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadAssigned()">↻ Refresh</button>
+          </div>
+          <div id="assigned-body" class="panel-body">
+            <div class="empty">
+              <div class="empty-icon">🖨</div>No printers assigned yet.
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="nav-icon">📋</span><span class="panel-title">Laravel Field
+              Reference</span></div>
+          <div class="panel-body" id="laravel-fields">
+            <div class="empty" style="padding:16px">Load assigned printers to see field values.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Config -->
+      <div id="page-config" class="page">
+        <div class="panel">
+          <div class="panel-header"><span class="nav-icon">⚙️</span><span class="panel-title">Agent Configuration</span>
+          </div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div class="form-full"><label>Laravel URL</label><input id="cfg-url"
+                  placeholder="https://yourapp.example.com"></div>
+              <div class="form-full"><label>Agent Key</label><input id="cfg-key" type="password"
+                  placeholder="your-secret-agent-key"></div>
+              <div><label>Vendor ID</label><input id="cfg-vendor" type="number" placeholder="42"></div>
+              <div><label>Agent ID</label><input id="cfg-agent" placeholder="print-agent"></div>
+            </div>
+            <div class="toolbar" style="margin-top:16px">
+              <button class="btn btn-primary" onclick="saveConfig()"><span id="cfg-save-inner">Save
+                  Config</span></button>
+              <button class="btn btn-secondary" onclick="verifyLaravel()"><span id="cfg-verify-inner">Verify
+                  Connection</span></button>
+            </div>
+            <div id="cfg-feedback" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+         Monitor — EMBEDDED, no page navigation needed
+         ═══════════════════════════════════════════════ -->
+      <div id="page-monitor" class="page">
+
+        <div id="mon-stale-banner" style="display:none"></div>
+
+        <!-- WS connection -->
+        <div class="panel">
+          <div class="panel-header">
+            <span>⚡</span>
+            <span class="panel-title">WebSocket Connection</span>
+            <span id="mon-updated" style="margin-left:auto;font-size:11px;color:var(--muted)">—</span>
+          </div>
+          <div class="panel-body" style="display:flex;flex-direction:column;gap:10px">
+            <div class="ws-state">
+              <div class="ws-dot" id="mon-ws-dot"></div>
+              <span class="ws-state-label" id="mon-ws-label">Checking…</span>
+              <span class="ws-state-sub" id="mon-ws-sub"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <span style="color:var(--muted);font-size:11px">Channel:</span>
+              <span class="channel-chip" id="mon-channel" onclick="copyText(this.textContent)"
+                title="Click to copy">—</span>
+              <span style="color:var(--muted);font-size:11px;margin-left:8px">Connected at:</span>
+              <span style="font-size:11px" id="mon-connected-at">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="mon-grid2">
+          <div class="panel">
+            <div class="panel-header"><span>🖥</span><span class="panel-title">Agent stats (this session)</span></div>
+            <div class="panel-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="mon-stat done">
+                  <div class="mon-stat-value" id="ms-done">—</div>
+                  <div class="mon-stat-label">Printed</div>
+                </div>
+                <div class="mon-stat failed">
+                  <div class="mon-stat-value" id="ms-failed">—</div>
+                  <div class="mon-stat-label">Failed</div>
+                </div>
+                <div class="mon-stat pending">
+                  <div class="mon-stat-value" id="ms-consec">—</div>
+                  <div class="mon-stat-label">Consec. fails</div>
+                </div>
+                <div class="mon-stat dupes">
+                  <div class="mon-stat-value" id="ms-dupes">—</div>
+                  <div class="mon-stat-label">Dupes ignored</div>
+                </div>
+              </div>
+              <div style="margin-top:12px;font-size:11px;color:var(--muted)">Last job: <span id="ms-last-job">—</span>
+              </div>
+              <div style="margin-top:4px;font-size:11px;color:var(--muted)">Dedup cache: <span id="ms-cache">—</span>
+                entries</div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><span>🗄</span><span class="panel-title">Server stats (past hour)</span></div>
+            <div class="panel-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="mon-stat done">
+                  <div class="mon-stat-value" id="ls-done">—</div>
+                  <div class="mon-stat-label">Done</div>
+                </div>
+                <div class="mon-stat failed">
+                  <div class="mon-stat-value" id="ls-failed">—</div>
+                  <div class="mon-stat-label">Failed</div>
+                </div>
+                <div class="mon-stat pending">
+                  <div class="mon-stat-value" id="ls-pending">—</div>
+                  <div class="mon-stat-label">Pending</div>
+                </div>
+                <div class="mon-stat dupes">
+                  <div class="mon-stat-value" id="ls-expired">—</div>
+                  <div class="mon-stat-label">Expired</div>
+                </div>
+              </div>
+              <div style="margin-top:12px;font-size:11px;color:var(--muted)">
+                Agent on server: <span id="ls-agent-status">—</span>
+                &nbsp;·&nbsp; Last seen: <span id="ls-last-seen">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Failures -->
+        <div class="panel">
+          <div class="panel-header">
+            <span>⚠</span>
+            <span class="panel-title">Recent print failures</span>
+            <span id="mon-fail-count" style="margin-left:auto;font-size:11px;color:var(--muted)"></span>
+          </div>
+          <div id="mon-failures-body" class="panel-body">
+            <div class="empty">No failures in the past hour ✓</div>
+          </div>
+        </div>
+
+      </div><!-- /page-monitor -->
+
+    </main>
+  </div>
+
+  <!-- Assign modal -->
+  <div class="modal-backdrop" id="assign-modal">
+    <div class="modal">
+      <div class="modal-title">Assign Printer Role</div>
+      <div class="modal-row">
+        <label>Device</label>
+        <input id="m-device-info" readonly style="background:var(--bg);color:var(--muted);">
+      </div>
+      <div class="modal-row">
+        <label>Role</label>
+        <select id="m-role">
+          <option value="main">Main — Thermal (receipts)</option>
+          <option value="kitchen">Kitchen — Thermal (KOT)</option>
+          <option value="standard">Standard — A4 (invoices)</option>
+        </select>
+      </div>
+      <div class="modal-row">
+        <label>Printer Type <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(what
+            format does it accept?)</span></label>
+        <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px">
+          <button id="m-type-pos" onclick="setModalType('pos')"
+            style="flex:1;padding:8px;font-family:var(--font-mono);font-size:12px;border:none;cursor:pointer;background:var(--surface2);color:var(--muted);transition:background .15s,color .15s">
+            🧾 POS / Thermal<br><span style="font-size:10px;opacity:.7">raw_base64 · ESC/POS</span>
+          </button>
+          <button id="m-type-a4" onclick="setModalType('a4')"
+            style="flex:1;padding:8px;font-family:var(--font-mono);font-size:12px;border:none;border-left:1px solid var(--border);cursor:pointer;background:var(--surface2);color:var(--muted);transition:background .15s,color .15s">
+            📄 A4 / Laser<br><span style="font-size:10px;opacity:.7">pdf_base64 · PDF</span>
           </button>
         </div>
-        <div class="panel-body" id="os-results">
-          <div class="empty"><div class="empty-icon">🖥</div>Click <b>Discover OS Printers</b> to query the system print spooler.</div>
-        </div>
+        <div id="m-type-hint" style="margin-top:6px;font-size:11px;color:var(--muted)"></div>
       </div>
-    </div>
-
-    <!-- ── USB Devices ── -->
-    <div id="page-usb" class="page">
-      <div class="panel">
-        <div class="panel-header">
-          <span class="nav-icon">🔌</span>
-          <span class="panel-title">USB Device Detection</span>
-          <button class="btn btn-primary" style="margin-left:auto" onclick="runUsbScan()">
-            <span id="usb-btn-inner">Detect USB Devices</span>
-          </button>
-        </div>
-        <div class="panel-body" id="usb-results">
-          <div class="empty"><div class="empty-icon">🔌</div>Click <b>Detect USB Devices</b> to enumerate /dev/usb/lpX paths (Linux).</div>
-        </div>
+      <div class="modal-row">
+        <label>Label</label>
+        <input id="m-label" placeholder="e.g. Counter thermal">
       </div>
-    </div>
-
-    <!-- ── Manual Add ── -->
-    <div id="page-manual" class="page">
-      <div class="panel">
-        <div class="panel-header">
-          <span class="nav-icon">🔍</span>
-          <span class="panel-title">Manual Probe</span>
-        </div>
-        <div class="panel-body">
-          <div class="form-grid three">
-            <div>
-              <label>IP Address</label>
-              <input id="probe-ip" placeholder="192.168.1.50">
-            </div>
-            <div>
-              <label>Port</label>
-              <input id="probe-port" type="number" placeholder="9100">
-            </div>
-            <div style="display:flex;align-items:flex-end">
-              <button class="btn btn-primary" style="width:100%" onclick="runProbe()">
-                <span id="probe-btn-inner">Test Connectivity</span>
-              </button>
-            </div>
-          </div>
-          <div id="probe-result" style="margin-top:14px"></div>
-        </div>
+      <div id="m-type-warning"
+        style="display:none;padding:8px 12px;border-radius:6px;font-size:11px;margin-top:8px;background:color-mix(in srgb,var(--warn) 12%,transparent);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);color:var(--warn);">
       </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <span class="nav-icon">➕</span>
-          <span class="panel-title">Add Network Printer Manually</span>
-        </div>
-        <div class="panel-body">
-          <div class="form-grid">
-            <div>
-              <label>IP Address</label>
-              <input id="manual-ip" placeholder="192.168.1.50">
-            </div>
-            <div>
-              <label>Port</label>
-              <input id="manual-port" type="number" value="9100">
-            </div>
-            <div>
-              <label>Role</label>
-              <select id="manual-role">
-                <option value="main">Main (thermal)</option>
-                <option value="kitchen">Kitchen (thermal)</option>
-                <option value="standard">Standard (A4)</option>
-              </select>
-            </div>
-            <div>
-              <label>Label</label>
-              <input id="manual-label" placeholder="e.g. Kitchen Epson TM-T20">
-            </div>
-          </div>
-          <div style="margin-top:14px">
-            <button class="btn btn-primary" onclick="manualAssign()">Assign Printer</button>
-          </div>
-        </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmAssign()">Assign & Generate ID</button>
       </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <span class="nav-icon">🖥</span>
-          <span class="panel-title">Add OS / CUPS / Windows Printer</span>
-        </div>
-        <div class="panel-body">
-          <div class="form-grid">
-            <div>
-              <label>OS Printer Name</label>
-              <input id="os-printer-name" placeholder="e.g. Canon G3070 series">
-            </div>
-            <div>
-              <label>Role</label>
-              <select id="os-role">
-                <option value="standard">Standard (A4)</option>
-                <option value="main">Main (thermal)</option>
-                <option value="kitchen">Kitchen (thermal)</option>
-              </select>
-            </div>
-            <div>
-              <label>Connection Type</label>
-              <select id="os-conn">
-                <option value="cups">CUPS / IPP (Linux/Mac)</option>
-                <option value="winspooler">Windows Spooler</option>
-              </select>
-            </div>
-            <div>
-              <label>Label</label>
-              <input id="os-label" placeholder="e.g. Front Desk Canon">
-            </div>
-          </div>
-          <div style="margin-top:14px">
-            <button class="btn btn-primary" onclick="manualAssignOs()">Assign OS Printer</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Assigned printers ── -->
-    <div id="page-assigned" class="page">
-      <div class="panel">
-        <div class="panel-header">
-          <span class="nav-icon">🖨</span>
-          <span class="panel-title">Assigned Printers</span>
-          <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadAssigned()">↻ Refresh</button>
-        </div>
-        <div id="assigned-body" class="panel-body">
-          <div class="empty"><div class="empty-icon">🖨</div>No printers assigned yet.</div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <span class="nav-icon">📋</span>
-          <span class="panel-title">Laravel Field Reference</span>
-        </div>
-        <div class="panel-body" id="laravel-fields">
-          <div class="empty" style="padding:16px">Load assigned printers to see field values.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Config ── -->
-    <div id="page-config" class="page">
-      <div class="panel">
-        <div class="panel-header">
-          <span class="nav-icon">⚙️</span>
-          <span class="panel-title">Agent Configuration</span>
-        </div>
-        <div class="panel-body">
-          <div class="form-grid">
-            <div class="form-full">
-              <label>Laravel URL</label>
-              <input id="cfg-url" placeholder="https://yourapp.example.com">
-            </div>
-            <div class="form-full">
-              <label>Agent Key</label>
-              <input id="cfg-key" type="password" placeholder="your-secret-agent-key">
-            </div>
-            <div>
-              <label>Vendor ID</label>
-              <input id="cfg-vendor" type="number" placeholder="42">
-            </div>
-            <div>
-              <label>Agent ID</label>
-              <input id="cfg-agent" placeholder="print-agent">
-            </div>
-          </div>
-          <div class="toolbar" style="margin-top:16px">
-            <button class="btn btn-primary" onclick="saveConfig()">
-              <span id="cfg-save-inner">Save Config</span>
-            </button>
-            <button class="btn btn-secondary" onclick="verifyLaravel()">
-              <span id="cfg-verify-inner">Verify Connection</span>
-            </button>
-          </div>
-          <div id="cfg-feedback" style="margin-top:12px"></div>
-        </div>
-      </div>
-    </div>
-
-  </main>
-</div>
-
-<!-- Assign modal -->
-<div class="modal-backdrop" id="assign-modal">
-  <div class="modal">
-    <div class="modal-title">Assign Printer Role</div>
-    <div class="modal-row">
-      <label>Device</label>
-      <input id="m-device-info" readonly style="background:var(--bg);color:var(--muted);">
-    </div>
-    <div class="modal-row">
-      <label>Role</label>
-      <select id="m-role">
-        <option value="main">Main — Thermal (receipts)</option>
-        <option value="kitchen">Kitchen — Thermal (KOT)</option>
-        <option value="standard">Standard — A4 (invoices)</option>
-      </select>
-    </div>
-    <div class="modal-row">
-      <label>Printer Type <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(what format does it accept?)</span></label>
-      <!-- Toggle buttons — more obvious than a select for a critical setting -->
-      <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px">
-        <button id="m-type-pos" onclick="setModalType('pos')"
-          style="flex:1;padding:8px;font-family:var(--font-mono);font-size:12px;border:none;cursor:pointer;
-                 background:var(--surface2);color:var(--muted);transition:background .15s,color .15s">
-          🧾 POS / Thermal<br><span style="font-size:10px;opacity:.7">raw_base64 · ESC/POS</span>
-        </button>
-        <button id="m-type-a4" onclick="setModalType('a4')"
-          style="flex:1;padding:8px;font-family:var(--font-mono);font-size:12px;border:none;border-left:1px solid var(--border);cursor:pointer;
-                 background:var(--surface2);color:var(--muted);transition:background .15s,color .15s">
-          📄 A4 / Laser<br><span style="font-size:10px;opacity:.7">pdf_base64 · PDF</span>
-        </button>
-      </div>
-      <div id="m-type-hint" style="margin-top:6px;font-size:11px;color:var(--muted)"></div>
-    </div>
-    <div class="modal-row">
-      <label>Label</label>
-      <input id="m-label" placeholder="e.g. Counter thermal">
-    </div>
-    <div id="m-type-warning" style="display:none; padding:8px 12px; border-radius:6px; font-size:11px; margin-top:8px; background:color-mix(in srgb,var(--warn) 12%,transparent); border:1px solid color-mix(in srgb,var(--warn) 30%,transparent); color:var(--warn);">
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="confirmAssign()">Assign & Generate ID</button>
     </div>
   </div>
-</div>
 
-<div id="toast-wrap"></div>
+  <div id="toast-wrap"></div>
 
-<script>
-// ── State ──────────────────────────────────────────────────────────────────
-let _pendingDevice   = null;
-let _selectedType    = "pos";   // current modal printer type selection
+  <script>
+    let _pendingDevice = null, _selectedType = "pos";
+    let _monTimer = null, _monActive = false;
 
-// ── Thermal name heuristics (mirrors registry.js THERMAL_NAME_PATTERNS) ────
-const THERMAL_PATTERNS = [
-  /\bTM[-_]?\w/i, /\bTSP\d/i, /\bBSC\d/i, /\bBixolon\b/i,
-  /\bSRP[-_]?\d/i, /\bSP[-_]?\d{3}/i, /\bCT[-_]S\d/i, /\bCBM\d/i,
-  /\bRP[-_]?\d{2}/i, /\bMP[-_]?T\d/i, /\bXP[-_]?\d{2}/i,
-  /\bPOS[-_]?\d/i, /\b80[Cc]\b/, /\b58[Cc]\b/,
-  /\bthermal\b/i, /\breceipt\b/i, /\bkitchen\b/i,
-  /\bKOT\b/, /\bESC[\/-]?POS\b/i, /\b(80|58)\s*mm\b/i,
-];
-function looksLikeThermal(name) {
-  return !!name && THERMAL_PATTERNS.some(r => r.test(name));
-}
+    const THERMAL_PATTERNS = [/\bTM[-_]?\w/i, /\bTSP\d/i, /\bBSC\d/i, /\bBixolon\b/i, /\bSRP[-_]?\d/i, /\bSP[-_]?\d{3}/i, /\bCT[-_]S\d/i, /\bCBM\d/i, /\bRP[-_]?\d{2}/i, /\bMP[-_]?T\d/i, /\bXP[-_]?\d{2}/i, /\bPOS[-_]?\d/i, /\b80[Cc]\b/, /\b58[Cc]\b/, /\bthermal\b/i, /\breceipt\b/i, /\bkitchen\b/i, /\bKOT\b/, /\bESC[\/-]?POS\b/i, /\b(80|58)\s*mm\b/i];
+    function looksLikeThermal(n) { return !!n && THERMAL_PATTERNS.some(r => r.test(n)); }
 
-// ── Navigation ─────────────────────────────────────────────────────────────
-function showPage(id, el) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  el.classList.add('active');
-  if (id === 'assigned') loadAssigned();
-  if (id === 'config')   loadConfig();
-}
+    // ── Navigation ─────────────────────────────────────────────────────────────
+    function showPage(id, el) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item[data-page]').forEach(n => n.classList.remove('active'));
+      document.getElementById('page-' + id).classList.add('active');
+      el.classList.add('active');
 
-// ── Toast ──────────────────────────────────────────────────────────────────
-function toast(msg, type = 'info') {
-  const wrap = document.getElementById('toast-wrap');
-  const el   = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.textContent = msg;
-  wrap.appendChild(el);
-  setTimeout(() => el.remove(), 4000);
-}
+      const isMonitor = id === 'monitor';
+      // Topbar: swap between wizard status and monitor pill
+      document.getElementById('status-dot').style.display = isMonitor ? 'none' : '';
+      document.getElementById('status-label').style.display = isMonitor ? 'none' : '';
+      document.getElementById('mon-topbar-note').style.display = isMonitor ? '' : 'none';
+      document.getElementById('mon-topbar-pill').style.display = isMonitor ? '' : 'none';
 
-// ── Button loader helper ───────────────────────────────────────────────────
-function setLoading(spannerId, loading, label) {
-  const s = document.getElementById(spannerId);
-  if (!s) return;
-  s.innerHTML = loading ? '<span class="btn-loader"></span>' : label;
-}
-
-// ── Port chip helper ───────────────────────────────────────────────────────
-function portClass(p) {
-  if ([9100,9101,9102].includes(p)) return 'raw';
-  if (p === 631) return 'ipp';
-  if (p === 515) return 'lpd';
-  if ([80,443].includes(p)) return 'web';
-  return '';
-}
-function renderPorts(ports) {
-  if (!ports || !ports.length) return '<span style="color:var(--muted)">—</span>';
-  return `<div class="ports-list">${ports.map(p => `<span class="port-chip ${portClass(p)}">${p}</span>`).join('')}</div>`;
-}
-
-function sourceBadge(src) {
-  const map = { lan:'🌐 LAN', os:'🖥 OS', usb:'🔌 USB', manual:'✏️ Manual' };
-  return `<span class="source-badge source-${src}">${map[src]||src}</span>`;
-}
-
-function connBadge(ct) {
-  if (!ct) return '';
-  return `<span class="conn-badge conn-${ct}">${ct}</span>`;
-}
-
-// ── Connection type auto-detect (used for table display only) ─────────────
-function guessConn(device) {
-  if (!device) return { connection_type: 'raw', printer_type: 'pos' };
-  const ports = device.ports || [];
-  if (device.source === 'usb' || device.usbPath) return { connection_type: 'usb_raw', printer_type: 'pos' };
-  if (device.source === 'os') {
-    const thermal = looksLikeThermal(device.osPrinterName);
-    return { connection_type: 'driver', printer_type: thermal ? 'pos' : 'a4' };
-  }
-  if (ports.includes(631)) return { connection_type: 'ipp', printer_type: 'a4' };
-  if (ports.includes(515)) return { connection_type: 'lpd', printer_type: 'a4' };
-  if (ports.some(p => [9100,9101,9102].includes(p))) return { connection_type: 'raw', printer_type: 'pos' };
-  return { connection_type: 'raw', printer_type: 'pos' };
-}
-
-// ── LAN Scan ───────────────────────────────────────────────────────────────
-async function runLanScan() {
-  setLoading('lan-btn-inner', true);
-  const extra = document.getElementById('extra-ports').value.trim();
-  const qs    = extra ? `?extraPorts=${encodeURIComponent(extra)}` : '';
-  try {
-    const r = await fetch(`/api/scan${qs}`);
-    const d = await r.json();
-    if (!r.ok) { toast(d.error || 'Scan failed', 'error'); return; }
-    renderDeviceTable('lan-results', d.devices, 'lan');
-    const b = document.getElementById('badge-lan');
-    b.textContent = d.total;
-    b.classList.toggle('live', d.total > 0);
-    toast(`Found ${d.total} device(s)`, 'success');
-  } catch(e) {
-    toast('Network error: ' + e.message, 'error');
-  } finally {
-    setLoading('lan-btn-inner', false, 'Scan Network');
-  }
-}
-
-// ── OS Scan ────────────────────────────────────────────────────────────────
-async function runOsScan() {
-  setLoading('os-btn-inner', true);
-  try {
-    const r = await fetch('/api/scan/os');
-    const d = await r.json();
-    if (!r.ok) { toast(d.error || 'OS discovery failed', 'error'); return; }
-    renderDeviceTable('os-results', d.devices, 'os');
-    const b = document.getElementById('badge-os');
-    b.textContent = d.total;
-    b.classList.toggle('live', d.total > 0);
-    toast(`Found ${d.total} OS printer(s)`, 'success');
-  } catch(e) {
-    toast('Network error: ' + e.message, 'error');
-  } finally {
-    setLoading('os-btn-inner', false, 'Discover OS Printers');
-  }
-}
-
-// ── USB Scan ───────────────────────────────────────────────────────────────
-async function runUsbScan() {
-  setLoading('usb-btn-inner', true);
-  try {
-    const r = await fetch('/api/scan/usb');
-    const d = await r.json();
-    if (!r.ok) { toast(d.error || 'USB discovery failed', 'error'); return; }
-    renderDeviceTable('usb-results', d.devices, 'usb');
-    const b = document.getElementById('badge-usb');
-    b.textContent = d.total;
-    b.classList.toggle('live', d.total > 0);
-    toast(`Found ${d.total} USB device(s)`, 'success');
-  } catch(e) {
-    toast('Network error: ' + e.message, 'error');
-  } finally {
-    setLoading('usb-btn-inner', false, 'Detect USB Devices');
-  }
-}
-
-// ── Manual Probe ───────────────────────────────────────────────────────────
-async function runProbe() {
-  const ip   = document.getElementById('probe-ip').value.trim();
-  const port = document.getElementById('probe-port').value.trim();
-  const out  = document.getElementById('probe-result');
-
-  if (!ip || !port) { toast('IP and port required', 'error'); return; }
-
-  setLoading('probe-btn-inner', true);
-  out.innerHTML = '';
-  try {
-    const r = await fetch('/api/probe', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ ip, port: parseInt(port) })
-    });
-    const d = await r.json();
-    if (d.reachable) {
-      out.innerHTML = `<div style="color:var(--accent);font-size:12px">✅ ${ip}:${port} is reachable (${d.responseMs}ms)
-        <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="openModal({ip:'${ip}',ports:[${port}],source:'manual'})">Assign →</button>
-      </div>`;
-    } else {
-      out.innerHTML = `<div style="color:var(--warn);font-size:12px">❌ ${ip}:${port} is not reachable — ${d.error}</div>`;
-    }
-  } catch(e) {
-    toast('Network error: ' + e.message, 'error');
-  } finally {
-    setLoading('probe-btn-inner', false, 'Test Connectivity');
-  }
-}
-
-// ── Manual assign ──────────────────────────────────────────────────────────
-async function manualAssign() {
-  const ip    = document.getElementById('manual-ip').value.trim();
-  const port  = document.getElementById('manual-port').value.trim();
-  const role  = document.getElementById('manual-role').value;
-  const label = document.getElementById('manual-label').value.trim();
-
-  if (!ip || !port) { toast('IP and port required', 'error'); return; }
-  await doAssign({ ip, port: parseInt(port), role, label, connection: 'network', ports: [parseInt(port)] });
-}
-
-async function manualAssignOs() {
-  const name  = document.getElementById('os-printer-name').value.trim();
-  const role  = document.getElementById('os-role').value;
-  const conn  = document.getElementById('os-conn').value;
-  const label = document.getElementById('os-label').value.trim();
-
-  if (!name) { toast('Printer name required', 'error'); return; }
-
-  const body = { role, label, connection: conn };
-  if (conn === 'cups') body.cupsName = name;
-  else body.windowsPrinterName = name;
-
-  await doAssign(body);
-}
-
-// ── Render device table ────────────────────────────────────────────────────
-function renderDeviceTable(containerId, devices, defaultSource) {
-  const el = document.getElementById(containerId);
-  if (!devices || !devices.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div>No devices found.</div>';
-    return;
-  }
-
-  // Group by IP for LAN (multi-port)
-  const rows = devices.map(d => {
-    const src  = d.source || defaultSource;
-    const conn = guessConn(d);
-    const isA  = d.assigned;
-    const identifier = d.ip || d.usbPath || d.osPrinterName || '—';
-
-    return `
-    <tr class="${isA ? 'is-assigned' : ''}">
-      <td>${sourceBadge(src)}</td>
-      <td style="font-family:var(--font-mono)">${d.ip || d.usbPath || '—'}</td>
-      <td>${d.osPrinterName ? `<span style="color:var(--text)">${d.osPrinterName}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
-      <td>${renderPorts(d.ports)}</td>
-      <td>${connBadge(conn.connection_type)}</td>
-      <td style="color:${conn.printer_type==='pos'?'var(--pos-color)':'var(--a4-color)'};font-size:11px;letter-spacing:.05em;text-transform:uppercase">${conn.printer_type}</td>
-      <td>${d.responseMs != null ? `<span style="color:var(--muted)">${d.responseMs}ms</span>` : '—'}</td>
-      <td>
-        ${isA
-          ? `<span style="color:var(--accent);font-size:11px">✔ ${d.role}</span>`
-          : `<button class="btn btn-secondary btn-sm" onclick='openModal(${JSON.stringify(d)})'>Assign</button>`}
-        ${(d.ip && d.ports && d.ports.some(p=>[9100,9101,9102].includes(p)))
-          ? `<button class="btn btn-ghost btn-sm" onclick="testPrint('${d.ip}',${d.ports.find(p=>[9100,9101,9102].includes(p))})">Test</button>`
-          : ''}
-      </td>
-    </tr>`;
-  }).join('');
-
-  el.innerHTML = `
-    <table class="device-table">
-      <thead><tr>
-        <th>Source</th><th>IP / Path</th><th>OS Name</th>
-        <th>Open Ports</th><th>Connection</th><th>Type</th>
-        <th>Latency</th><th>Action</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-}
-
-// ── Test print ─────────────────────────────────────────────────────────────
-async function testPrint(ip, port) {
-  toast(`Sending test page to ${ip}:${port}…`, 'info');
-  try {
-    const r = await fetch('/api/test-print', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ ip, port })
-    });
-    const d = await r.json();
-    d.ok ? toast(d.message, 'success') : toast(d.error, 'error');
-  } catch(e) { toast('Network error', 'error'); }
-}
-
-// ── Assign modal ───────────────────────────────────────────────────────────
-function openModal(device) {
-  _pendingDevice = device;
-  const identifier = device.ip || device.usbPath || device.osPrinterName || '—';
-  document.getElementById('m-device-info').value = identifier;
-  document.getElementById('m-label').value = '';
-
-  const conn     = guessConn(device);
-  const autoType = conn.printer_type;   // "pos" | "a4"
-
-  // Was this auto-detected as thermal by name?
-  const thermalByName = device.source === 'os' && looksLikeThermal(device.osPrinterName);
-
-  // Pre-set role
-  document.getElementById('m-role').value = autoType === 'a4' ? 'standard' : 'main';
-
-  // Set type toggle
-  setModalType(autoType, thermalByName ? device.osPrinterName : null);
-
-  document.getElementById('assign-modal').classList.add('open');
-}
-
-function setModalType(type, detectedByName) {
-  _selectedType = type;
-
-  const posBtn  = document.getElementById('m-type-pos');
-  const a4Btn   = document.getElementById('m-type-a4');
-  const hint    = document.getElementById('m-type-hint');
-  const warn    = document.getElementById('m-type-warning');
-
-  // Highlight active button
-  const activeBg    = type === 'pos'
-    ? 'color-mix(in srgb,var(--pos-color) 15%,transparent)'
-    : 'color-mix(in srgb,var(--a4-color) 15%,transparent)';
-  const activeColor = type === 'pos' ? 'var(--pos-color)' : 'var(--a4-color)';
-
-  posBtn.style.background = type === 'pos' ? activeBg : 'var(--surface2)';
-  posBtn.style.color      = type === 'pos' ? activeColor : 'var(--muted)';
-  a4Btn.style.background  = type === 'a4' ? activeBg : 'var(--surface2)';
-  a4Btn.style.color       = type === 'a4' ? activeColor : 'var(--muted)';
-
-  // Hint text
-  if (detectedByName) {
-    hint.innerHTML = `<span style="color:var(--pos-color)">✦ Auto-detected as thermal from name "${detectedByName}"</span>`;
-  } else if (type === 'pos') {
-    hint.innerHTML = `Sends ESC/POS bytes (raw_base64). Use for receipt &amp; KOT printers.`;
-  } else {
-    hint.innerHTML = `Sends PDF content (pdf_base64). Use for laser/inkjet A4 printers.`;
-  }
-
-  // Role/type mismatch warning
-  const role = document.getElementById('m-role').value;
-  updateModalWarning(type, role);
-}
-
-function updateModalWarning(type, role) {
-  const warn = document.getElementById('m-type-warning');
-  type = type || _selectedType;
-  role = role || document.getElementById('m-role').value;
-
-  const mismatch = (type === 'pos' && role === 'standard') ||
-                   (type === 'a4'  && role !== 'standard');
-
-  if (mismatch) {
-    warn.style.display = 'block';
-    warn.textContent = type === 'pos' && role === 'standard'
-      ? '⚠️ Assigning a POS/thermal printer to Standard (A4) role. The agent expects pdf_base64 for A4 jobs — this will fail unless Laravel sends raw jobs to this printer.'
-      : '⚠️ Assigning an A4/laser printer to a thermal role. The agent will send raw_base64 (ESC/POS) — use only if this printer has ESC/POS firmware.';
-  } else {
-    warn.style.display = 'none';
-  }
-}
-
-document.getElementById('m-role').addEventListener('change', (e) => {
-  updateModalWarning(_selectedType, e.target.value);
-});
-
-function closeModal() {
-  document.getElementById('assign-modal').classList.remove('open');
-  _pendingDevice = null;
-}
-
-async function confirmAssign() {
-  if (!_pendingDevice) return;
-  const d     = _pendingDevice;
-  const role  = document.getElementById('m-role').value;
-  const label = document.getElementById('m-label').value.trim();
-
-  const body = { role, label, printerType: _selectedType };
-
-  if (d.source === 'usb' && d.usbPath) {
-    body.connection = 'usb';
-    body.device     = d.usbPath;
-  } else if (d.source === 'os' || d.osPrinterName) {
-    // ✅ FIXED: Let backend decide winspooler vs cups
-    // Send generic 'driver' + both name fields; backend routes based on its platform
-    body.connection         = 'driver';
-    body.osPrinterName      = d.osPrinterName;
-    body.cupsName           = d.osPrinterName;
-    body.windowsPrinterName = d.osPrinterName;
-    body.ip                 = d.ip || null;
-  } else {
-    const rawPort = (d.ports || []).find(p => [9100,9101,9102].includes(p));
-    const port    = rawPort || (d.ports && d.ports[0]) || 9100;
-    body.connection = 'network';
-    body.ip    = d.ip;
-    body.port  = port;
-    body.ports = d.ports || [port];
-  }
-
-  closeModal();
-  await doAssign(body);
-}
-async function doAssign(body) {
-  try {
-    const r = await fetch('/api/assign', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    const d = await r.json();
-    if (r.ok && d.ok) {
-      toast(`✅ Assigned! ID: ${d.printerId}`, 'success');
-      loadAssigned();
-      const b = document.getElementById('badge-assigned');
-      b.classList.add('live');
-    } else {
-      toast(d.error || 'Assign failed', 'error');
-    }
-  } catch(e) {
-    toast('Network error: ' + e.message, 'error');
-  }
-}
-
-// ── Assigned printers ──────────────────────────────────────────────────────
-async function loadAssigned() {
-  try {
-    const r = await fetch('/api/printers');
-    const d = await r.json();
-    const body = document.getElementById('assigned-body');
-    const b    = document.getElementById('badge-assigned');
-
-    b.textContent = d.printers.length;
-    b.classList.toggle('live', d.printers.length > 0);
-
-    if (!d.printers.length) {
-      body.innerHTML = '<div class="empty"><div class="empty-icon">🖨</div>No printers assigned yet.</div>';
-      document.getElementById('laravel-fields').innerHTML = '<div class="empty" style="padding:16px">No printers assigned.</div>';
-      return;
+      if (id === 'assigned') loadAssigned();
+      if (id === 'config') loadConfig();
+      if (isMonitor) { _monActive = true; refreshMonitor(); _monTimer = setInterval(refreshMonitor, 5000); }
+      else { _monActive = false; if (_monTimer) { clearInterval(_monTimer); _monTimer = null; } }
     }
 
-    const rows = d.printers.map(p => `
-      <tr>
-        <td><span class="id-chip" title="Click to copy" onclick="copyText('${p.id}')">${p.id}</span></td>
-        <td>${p.label || '—'}</td>
-        <td style="text-transform:uppercase;font-size:11px;letter-spacing:.05em;color:${p.printer_type==='pos'?'var(--pos-color)':'var(--a4-color)'}">${p.printer_type || '—'}</td>
-        <td>${connBadge(p.connection_type || p.connection)}</td>
-        <td style="font-family:var(--font-mono);color:var(--muted)">${p.ip ? `${p.ip}:${p.port}` : (p.usb_path || p.os_name || '—')}</td>
-        <td>
-          <button class="btn btn-danger btn-sm" onclick="removePrinter('${p.id}')">Remove</button>
-          ${p.ip && p.port ? `<button class="btn btn-ghost btn-sm" onclick="testPrint('${p.ip}',${p.port})">Test</button>` : ''}
-        </td>
-      </tr>
-    `).join('');
-
-    body.innerHTML = `
-      <table class="device-table">
-        <thead><tr>
-          <th>Printer ID</th><th>Label</th><th>Type</th>
-          <th>Connection</th><th>Target</th><th>Actions</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
-
-    // Laravel field reference
-    const fields = Object.entries(d.laravelFields);
-    const fieldHtml = fields.map(([name, val]) => `
-      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
-        <span style="color:var(--muted);font-size:11px;min-width:280px">${name}</span>
-        <span class="id-chip" onclick="copyText('${val}')" title="Click to copy">${val}</span>
-      </div>`).join('');
-    document.getElementById('laravel-fields').innerHTML = `<div style="padding:4px 0">${fieldHtml}</div>`;
-
-  } catch(e) {
-    toast('Failed to load printers', 'error');
-  }
-}
-
-async function removePrinter(id) {
-  if (!confirm(`Remove printer "${id}"?`)) return;
-  const r = await fetch(`/api/printers/${encodeURIComponent(id)}`, { method:'DELETE' });
-  const d = await r.json();
-  d.ok ? toast('Printer removed', 'success') : toast(d.error, 'error');
-  loadAssigned();
-}
-
-// ── Config ─────────────────────────────────────────────────────────────────
-async function loadConfig() {
-  try {
-    const r = await fetch('/api/config');
-    const d = await r.json();
-    document.getElementById('cfg-url').value    = d.laravelUrl || '';
-    document.getElementById('cfg-vendor').value = d.vendorId   || '';
-    document.getElementById('cfg-agent').value  = d.agentId    || '';
-    if (d.agentKeySet) {
-      document.getElementById('cfg-key').placeholder = d.agentKeyMasked || '(saved)';
+    // ── Toast ──────────────────────────────────────────────────────────────────
+    function toast(msg, type = 'info') {
+      const wrap = document.getElementById('toast-wrap');
+      const el = document.createElement('div'); el.className = `toast ${type}`; el.textContent = msg;
+      wrap.appendChild(el); setTimeout(() => el.remove(), 4000);
     }
-    // Update topbar status
-    const dot   = document.getElementById('status-dot');
-    const label = document.getElementById('status-label');
-    dot.className   = 'status-dot ' + (d.configured ? 'ok' : 'err');
-    label.textContent = d.configured ? `vendor #${d.vendorId}` : 'not configured';
-  } catch(e) {}
-}
+    function setLoading(id, loading, label) { const s = document.getElementById(id); if (!s) return; s.innerHTML = loading ? '<span class="btn-loader"></span>' : label; }
 
-async function saveConfig() {
-  const url    = document.getElementById('cfg-url').value.trim();
-  const key    = document.getElementById('cfg-key').value.trim();
-  const vendor = document.getElementById('cfg-vendor').value.trim();
-  const agent  = document.getElementById('cfg-agent').value.trim();
+    // ── Port helpers ───────────────────────────────────────────────────────────
+    function portClass(p) { if ([9100, 9101, 9102].includes(p)) return 'raw'; if (p === 631) return 'ipp'; if (p === 515) return 'lpd'; if ([80, 443].includes(p)) return 'web'; return ''; }
+    function renderPorts(ports) { if (!ports || !ports.length) return '<span style="color:var(--muted)">—</span>'; return `<div class="ports-list">${ports.map(p => `<span class="port-chip ${portClass(p)}">${p}</span>`).join('')}</div>`; }
+    function sourceBadge(src) { const m = { lan: '🌐 LAN', os: '🖥 OS', usb: '🔌 USB', manual: '✏️ Manual' }; return `<span class="source-badge source-${src}">${m[src] || src}</span>`; }
+    function connBadge(ct) { if (!ct) return ''; return `<span class="conn-badge conn-${ct}">${ct}</span>`; }
+    function guessConn(d) { if (!d) return { connection_type: 'raw', printer_type: 'pos' }; const p = d.ports || []; if (d.source === 'usb' || d.usbPath) return { connection_type: 'usb_raw', printer_type: 'pos' }; if (d.source === 'os') { const t = looksLikeThermal(d.osPrinterName); return { connection_type: 'driver', printer_type: t ? 'pos' : 'a4' }; } if (p.includes(631)) return { connection_type: 'ipp', printer_type: 'a4' }; if (p.includes(515)) return { connection_type: 'lpd', printer_type: 'a4' }; if (p.some(x => [9100, 9101, 9102].includes(x))) return { connection_type: 'raw', printer_type: 'pos' }; return { connection_type: 'raw', printer_type: 'pos' }; }
 
-  if (!url || !vendor) { toast('URL and Vendor ID required', 'error'); return; }
+    // ── Scans ──────────────────────────────────────────────────────────────────
+    async function runLanScan() {
+      setLoading('lan-btn-inner', true);
+      const extra = document.getElementById('extra-ports').value.trim();
+      const qs = extra ? `?extraPorts=${encodeURIComponent(extra)}` : '';
+      try { const r = await fetch(`/api/scan${qs}`); const d = await r.json(); if (!r.ok) { toast(d.error || 'Scan failed', 'error'); return; } renderDeviceTable('lan-results', d.devices, 'lan'); const b = document.getElementById('badge-lan'); b.textContent = d.total; b.classList.toggle('live', d.total > 0); toast(`Found ${d.total} device(s)`, 'success'); }
+      catch (e) { toast('Network error: ' + e.message, 'error'); }
+      finally { setLoading('lan-btn-inner', false, 'Scan Network'); }
+    }
+    async function runOsScan() {
+      setLoading('os-btn-inner', true);
+      try { const r = await fetch('/api/scan/os'); const d = await r.json(); if (!r.ok) { toast(d.error || 'OS discovery failed', 'error'); return; } renderDeviceTable('os-results', d.devices, 'os'); const b = document.getElementById('badge-os'); b.textContent = d.total; b.classList.toggle('live', d.total > 0); toast(`Found ${d.total} OS printer(s)`, 'success'); }
+      catch (e) { toast('Network error: ' + e.message, 'error'); }
+      finally { setLoading('os-btn-inner', false, 'Discover OS Printers'); }
+    }
+    async function runUsbScan() {
+      setLoading('usb-btn-inner', true);
+      try { const r = await fetch('/api/scan/usb'); const d = await r.json(); if (!r.ok) { toast(d.error || 'USB discovery failed', 'error'); return; } renderDeviceTable('usb-results', d.devices, 'usb'); const b = document.getElementById('badge-usb'); b.textContent = d.total; b.classList.toggle('live', d.total > 0); toast(`Found ${d.total} USB device(s)`, 'success'); }
+      catch (e) { toast('Network error: ' + e.message, 'error'); }
+      finally { setLoading('usb-btn-inner', false, 'Detect USB Devices'); }
+    }
+    async function runProbe() {
+      const ip = document.getElementById('probe-ip').value.trim(), port = document.getElementById('probe-port').value.trim();
+      if (!ip || !port) { toast('IP and port required', 'error'); return; }
+      const out = document.getElementById('probe-result'); setLoading('probe-btn-inner', true); out.innerHTML = '';
+      try {
+        const r = await fetch('/api/probe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip, port: parseInt(port) }) }); const d = await r.json();
+        if (d.reachable) { out.innerHTML = `<div style="color:var(--accent);font-size:12px">✅ ${ip}:${port} reachable (${d.responseMs}ms) <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="openModal({ip:'${ip}',ports:[${port}],source:'manual'})">Assign →</button></div>`; }
+        else out.innerHTML = `<div style="color:var(--warn);font-size:12px">❌ ${ip}:${port} not reachable — ${d.error}</div>`;
+      }
+      catch (e) { toast('Network error: ' + e.message, 'error'); }
+      finally { setLoading('probe-btn-inner', false, 'Test Connectivity'); }
+    }
+    async function manualAssign() { const ip = document.getElementById('manual-ip').value.trim(), port = document.getElementById('manual-port').value.trim(), role = document.getElementById('manual-role').value, label = document.getElementById('manual-label').value.trim(); if (!ip || !port) { toast('IP and port required', 'error'); return; } await doAssign({ ip, port: parseInt(port), role, label, connection: 'network', ports: [parseInt(port)] }); }
+    async function manualAssignOs() { const name = document.getElementById('os-printer-name').value.trim(), role = document.getElementById('os-role').value, conn = document.getElementById('os-conn').value, label = document.getElementById('os-label').value.trim(); if (!name) { toast('Printer name required', 'error'); return; } const body = { role, label, connection: conn }; if (conn === 'cups') body.cupsName = name; else body.windowsPrinterName = name; await doAssign(body); }
 
-  setLoading('cfg-save-inner', true);
-  try {
-    const r = await fetch('/api/config', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ laravelUrl: url, agentKey: key || undefined, vendorId: vendor, agentId: agent })
-    });
-    const d = await r.json();
-    r.ok ? toast(d.message, 'success') : toast(d.error, 'error');
+    function renderDeviceTable(cid, devices, def) {
+      const el = document.getElementById(cid);
+      if (!devices || !devices.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div>No devices found.</div>'; return; }
+      const rows = devices.map(d => {
+        const src = d.source || def, conn = guessConn(d), isA = d.assigned;
+        return `<tr class="${isA ? 'is-assigned' : ''}"><td>${sourceBadge(src)}</td><td style="font-family:var(--font-mono)">${d.ip || d.usbPath || '—'}</td><td>${d.osPrinterName ? `<span>${d.osPrinterName}</span>` : '<span style="color:var(--muted)">—</span>'}</td><td>${renderPorts(d.ports)}</td><td>${connBadge(conn.connection_type)}</td><td style="color:${conn.printer_type === 'pos' ? 'var(--pos-color)' : 'var(--a4-color)'};font-size:11px;text-transform:uppercase">${conn.printer_type}</td><td>${d.responseMs != null ? `<span style="color:var(--muted)">${d.responseMs}ms</span>` : '—'}</td><td>${isA ? `<span style="color:var(--accent);font-size:11px">✔ ${d.role}</span>` : `<button class="btn btn-secondary btn-sm" onclick='openModal(${JSON.stringify(d)})'>Assign</button>`}${(d.ip && d.ports && d.ports.some(p => [9100, 9101, 9102].includes(p))) ? `<button class="btn btn-ghost btn-sm" onclick="testPrint('${d.ip}',${d.ports.find(p => [9100, 9101, 9102].includes(p))})">Test</button>` : ''}</td></tr>`;
+      }).join('');
+      el.innerHTML = `<table class="device-table"><thead><tr><th>Source</th><th>IP / Path</th><th>OS Name</th><th>Open Ports</th><th>Connection</th><th>Type</th><th>Latency</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+    async function testPrint(ip, port) { toast(`Sending test to ${ip}:${port}…`, 'info'); try { const r = await fetch('/api/test-print', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip, port }) }); const d = await r.json(); d.ok ? toast(d.message, 'success') : toast(d.error, 'error'); } catch (e) { toast('Network error', 'error'); } }
+
+    // ── Modal ──────────────────────────────────────────────────────────────────
+    function openModal(device) {
+      _pendingDevice = device; document.getElementById('m-device-info').value = device.ip || device.usbPath || device.osPrinterName || '—'; document.getElementById('m-label').value = '';
+      const conn = guessConn(device), thermalByName = device.source === 'os' && looksLikeThermal(device.osPrinterName);
+      document.getElementById('m-role').value = conn.printer_type === 'a4' ? 'standard' : 'main';
+      setModalType(conn.printer_type, thermalByName ? device.osPrinterName : null);
+      document.getElementById('assign-modal').classList.add('open');
+    }
+    function setModalType(type, det) {
+      _selectedType = type;
+      const pos = document.getElementById('m-type-pos'), a4 = document.getElementById('m-type-a4'), hint = document.getElementById('m-type-hint');
+      const bg = type === 'pos' ? 'color-mix(in srgb,var(--pos-color) 15%,transparent)' : 'color-mix(in srgb,var(--a4-color) 15%,transparent)';
+      const col = type === 'pos' ? 'var(--pos-color)' : 'var(--a4-color)';
+      pos.style.background = type === 'pos' ? bg : 'var(--surface2)'; pos.style.color = type === 'pos' ? col : 'var(--muted)';
+      a4.style.background = type === 'a4' ? bg : 'var(--surface2)'; a4.style.color = type === 'a4' ? col : 'var(--muted)';
+      if (det) hint.innerHTML = `<span style="color:var(--pos-color)">✦ Auto-detected from "${det}"</span>`;
+      else if (type === 'pos') hint.innerHTML = 'Sends ESC/POS bytes (raw_base64). Use for receipt &amp; KOT printers.';
+      else hint.innerHTML = 'Sends PDF content (pdf_base64). Use for laser/inkjet A4 printers.';
+      updateModalWarning(type, document.getElementById('m-role').value);
+    }
+    function updateModalWarning(type, role) {
+      const warn = document.getElementById('m-type-warning'); type = type || _selectedType; role = role || document.getElementById('m-role').value;
+      const bad = (type === 'pos' && role === 'standard') || (type === 'a4' && role !== 'standard');
+      if (bad) { warn.style.display = 'block'; warn.textContent = type === 'pos' && role === 'standard' ? '⚠️ POS/thermal in Standard role — expects pdf_base64.' : '⚠️ A4/laser in thermal role — expects raw_base64 (ESC/POS).'; }
+      else warn.style.display = 'none';
+    }
+    document.getElementById('m-role').addEventListener('change', e => updateModalWarning(_selectedType, e.target.value));
+    function closeModal() { document.getElementById('assign-modal').classList.remove('open'); _pendingDevice = null; }
+    async function confirmAssign() {
+      if (!_pendingDevice) return; const d = _pendingDevice, role = document.getElementById('m-role').value, label = document.getElementById('m-label').value.trim();
+      const body = { role, label, printerType: _selectedType };
+      if (d.source === 'usb' && d.usbPath) { body.connection = 'usb'; body.device = d.usbPath; }
+      else if (d.source === 'os' || d.osPrinterName) { body.connection = 'driver'; body.osPrinterName = d.osPrinterName; body.cupsName = d.osPrinterName; body.windowsPrinterName = d.osPrinterName; body.ip = d.ip || null; }
+      else { const rp = (d.ports || []).find(p => [9100, 9101, 9102].includes(p)), port = rp || (d.ports && d.ports[0]) || 9100; body.connection = 'network'; body.ip = d.ip; body.port = port; body.ports = d.ports || [port]; }
+      closeModal(); await doAssign(body);
+    }
+    async function doAssign(body) {
+      try {
+        const r = await fetch('/api/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const d = await r.json();
+        if (r.ok && d.ok) { toast(`✅ Assigned! ID: ${d.printerId}`, 'success'); loadAssigned(); document.getElementById('badge-assigned').classList.add('live'); }
+        else toast(d.error || 'Assign failed', 'error');
+      }
+      catch (e) { toast('Network error: ' + e.message, 'error'); }
+    }
+
+    // ── Assigned ───────────────────────────────────────────────────────────────
+    async function loadAssigned() {
+      try {
+        const r = await fetch('/api/printers'); const d = await r.json();
+        const body = document.getElementById('assigned-body'), b = document.getElementById('badge-assigned');
+        b.textContent = d.printers.length; b.classList.toggle('live', d.printers.length > 0);
+        if (!d.printers.length) { body.innerHTML = '<div class="empty"><div class="empty-icon">🖨</div>No printers assigned yet.</div>'; document.getElementById('laravel-fields').innerHTML = '<div class="empty" style="padding:16px">No printers assigned.</div>'; return; }
+        const rows = d.printers.map(p => `<tr><td><span class="id-chip" onclick="copyText('${p.id}')">${p.id}</span></td><td>${p.label || '—'}</td><td style="text-transform:uppercase;font-size:11px;color:${p.printer_type === 'pos' ? 'var(--pos-color)' : 'var(--a4-color)'}">${p.printer_type || '—'}</td><td>${connBadge(p.connection_type || p.connection)}</td><td style="font-family:var(--font-mono);color:var(--muted)">${p.ip ? `${p.ip}:${p.port}` : (p.usb_path || p.os_name || '—')}</td><td><button class="btn btn-danger btn-sm" onclick="removePrinter('${p.id}')">Remove</button>${p.ip && p.port ? `<button class="btn btn-ghost btn-sm" onclick="testPrint('${p.ip}',${p.port})">Test</button>` : ''}</td></tr>`).join('');
+        body.innerHTML = `<table class="device-table"><thead><tr><th>Printer ID</th><th>Label</th><th>Type</th><th>Connection</th><th>Target</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+        const fields = Object.entries(d.laravelFields);
+        document.getElementById('laravel-fields').innerHTML = `<div style="padding:4px 0">${fields.map(([n, v]) => `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted);font-size:11px;min-width:280px">${n}</span><span class="id-chip" onclick="copyText('${v}')">${v}</span></div>`).join('')}</div>`;
+      } catch (e) { toast('Failed to load printers', 'error'); }
+    }
+    async function removePrinter(id) { if (!confirm(`Remove "${id}"?`)) return; const r = await fetch(`/api/printers/${encodeURIComponent(id)}`, { method: 'DELETE' }); const d = await r.json(); d.ok ? toast('Printer removed', 'success') : toast(d.error, 'error'); loadAssigned(); }
+
+    // ── Config ─────────────────────────────────────────────────────────────────
+    async function loadConfig() {
+      try {
+        const r = await fetch('/api/config'); const d = await r.json();
+        document.getElementById('cfg-url').value = d.laravelUrl || ''; document.getElementById('cfg-vendor').value = d.vendorId || ''; document.getElementById('cfg-agent').value = d.agentId || '';
+        if (d.agentKeySet) document.getElementById('cfg-key').placeholder = d.agentKeyMasked || '(saved)';
+        document.getElementById('status-dot').className = 'status-dot ' + (d.configured ? 'ok' : 'err');
+        document.getElementById('status-label').textContent = d.configured ? `vendor #${d.vendorId}` : 'not configured';
+      } catch (e) { }
+    }
+    async function saveConfig() {
+      const url = document.getElementById('cfg-url').value.trim(), key = document.getElementById('cfg-key').value.trim(), vendor = document.getElementById('cfg-vendor').value.trim(), agent = document.getElementById('cfg-agent').value.trim();
+      if (!url || !vendor) { toast('URL and Vendor ID required', 'error'); return; }
+      setLoading('cfg-save-inner', true);
+      try { const r = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ laravelUrl: url, agentKey: key || undefined, vendorId: vendor, agentId: agent }) }); const d = await r.json(); r.ok ? toast(d.message, 'success') : toast(d.error, 'error'); loadConfig(); }
+      catch (e) { toast('Save failed: ' + e.message, 'error'); }
+      finally { setLoading('cfg-save-inner', false, 'Save Config'); }
+    }
+    async function verifyLaravel() {
+      setLoading('cfg-verify-inner', true); const fb = document.getElementById('cfg-feedback'); fb.innerHTML = '';
+      try { const r = await fetch('/api/verify-laravel'); const d = await r.json(); fb.innerHTML = d.ok ? `<span style="color:var(--accent)">✅ ${d.message}</span>` : `<span style="color:var(--warn)">❌ ${d.error}</span>`; }
+      catch (e) { fb.innerHTML = `<span style="color:var(--warn)">❌ ${e.message}</span>`; }
+      finally { setLoading('cfg-verify-inner', false, 'Verify Connection'); }
+    }
+
+    // ── Monitor ────────────────────────────────────────────────────────────────
+    async function refreshMonitor() {
+      try {
+        const r = await fetch('/api/agent-status'); if (!r.ok) return; const d = await r.json();
+        renderMonitor(d);
+        const note = 'Updated ' + new Date().toLocaleTimeString();
+        document.getElementById('mon-updated').textContent = note;
+        document.getElementById('mon-topbar-note').textContent = note;
+      } catch (e) { document.getElementById('mon-updated').textContent = 'Fetch error'; }
+    }
+
+    function renderMonitor(d) {
+      const ws = d.websocket || {}; const state = ws.connectionState || 'disconnected';
+      const dot = document.getElementById('mon-ws-dot');
+      dot.className = 'ws-dot ' + ({ 'connected': 'connected', 'connecting': 'connecting', 'initialized': 'initialized', 'failed': 'failed' }[state] || 'disconnected');
+      const lblMap = { connected: 'Connected to WebSocket server', connecting: 'Connecting…', initialized: 'Initialized — not yet connected', unavailable: 'Unavailable (Pusher error)', failed: 'All transports failed' };
+      document.getElementById('mon-ws-label').textContent = lblMap[state] || 'Disconnected';
+      document.getElementById('mon-ws-sub').textContent = ws.connectedAt ? 'since ' + new Date(ws.connectedAt).toLocaleTimeString() : '';
+
+      // Topbar pill
+      const pill = document.getElementById('mon-topbar-pill');
+      pill.textContent = 'WS ' + state; pill.className = 'ws-pill ' + (state === 'connected' ? 'ok' : state === 'connecting' ? 'warn' : 'err');
+
+      document.getElementById('mon-channel').textContent = ws.channel || '—';
+      document.getElementById('mon-connected-at').textContent = ws.connectedAt ? new Date(ws.connectedAt).toLocaleString() : '—';
+
+      // Agent stats
+      document.getElementById('ms-done').textContent = ws.totalJobsDone ?? '—';
+      document.getElementById('ms-failed').textContent = ws.totalJobsFailed ?? '—';
+      document.getElementById('ms-consec').textContent = ws.consecutiveFails ?? '—';
+      document.getElementById('ms-dupes').textContent = ws.totalDuplicates ?? '—';
+      document.getElementById('ms-cache').textContent = ws.dedupCacheSize ?? '—';
+      document.getElementById('ms-last-job').textContent = ws.lastJobAt ? new Date(ws.lastJobAt).toLocaleString() : 'No jobs yet';
+
+      // Sidebar badge
+      const mb = document.getElementById('badge-monitor');
+      if (state === 'connected') { mb.textContent = '● live'; mb.className = 'badge live-blue'; }
+      else if (state === 'connecting') { mb.textContent = '◌'; mb.className = 'badge'; mb.style.color = 'var(--warn)'; }
+      else { mb.textContent = '—'; mb.className = 'badge'; mb.style.color = ''; }
+
+      // Laravel stats
+      const lv = d.laravel; if (!lv) return;
+      const s = lv.stats_1h || {};
+      document.getElementById('ls-done').textContent = s.done ?? '—'; document.getElementById('ls-failed').textContent = s.failed ?? '—';
+      document.getElementById('ls-pending').textContent = s.pending ?? '—'; document.getElementById('ls-expired').textContent = s.expired ?? '—';
+      const ae = document.getElementById('ls-agent-status'); ae.textContent = lv.agent_online ? '● Online' : '○ Offline'; ae.style.color = lv.agent_online ? 'var(--accent)' : 'var(--muted)';
+      document.getElementById('ls-last-seen').textContent = lv.last_seen || '—';
+
+      // Stale banner
+      const banner = document.getElementById('mon-stale-banner');
+      if (lv.stale_pending > 0) { banner.className = 'mon-banner warn'; banner.style.display = 'flex'; banner.innerHTML = `<span>⚠</span> ${lv.stale_pending_warn}`; }
+      else banner.style.display = 'none';
+
+      // Failures
+      const fails = lv.recent_failures || []; const fb = document.getElementById('mon-failures-body');
+      document.getElementById('mon-fail-count').textContent = fails.length ? `${fails.length} recent` : '';
+      if (!fails.length) { fb.innerHTML = '<div class="empty">No failures in the past hour ✓</div>'; }
+      else {
+        const rows = fails.map(f => {
+          const tc = f.printer_type?.includes('kitchen') ? 'kitchen' : f.printer_type?.includes('main') ? 'main' : 'standard';
+          return `<tr><td><span class="tag ${tc}">${f.printer_type || '—'}</span></td><td><div style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">${f.job_uuid?.slice(0, 8) || '—'}…</div></td><td><div class="err-msg">${esc(f.error || 'no message')}</div></td><td style="color:var(--muted);font-size:11px;white-space:nowrap">${f.failed_at ? new Date(f.failed_at).toLocaleString() : '—'}</td><td style="color:var(--muted);font-size:11px">${f.attempts ?? '—'}</td></tr>`;
+        }).join('');
+        fb.innerHTML = `<table class="log-table"><thead><tr><th>Printer</th><th>UUID</th><th>Error</th><th>Time</th><th>Attempts</th></tr></thead><tbody>${rows}</tbody></table>`;
+      }
+    }
+
+    // ── Utility ────────────────────────────────────────────────────────────────
+    function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function copyText(txt) { navigator.clipboard.writeText(txt).then(() => toast(`Copied: ${txt}`, 'success')); }
+
+    // ── Background badge poll (when NOT on monitor page) ───────────────────────
+    setInterval(async () => {
+      if (_monActive) return;
+      try {
+        const r = await fetch('/api/agent-status'); if (!r.ok) return; const d = await r.json();
+        const state = d.websocket?.connectionState || 'unknown'; const b = document.getElementById('badge-monitor');
+        if (state === 'connected') { b.textContent = '● live'; b.className = 'badge live-blue'; b.style.color = ''; }
+        else if (state === 'connecting') { b.textContent = '◌'; b.className = 'badge'; b.style.color = 'var(--warn)'; }
+        else { b.textContent = '—'; b.className = 'badge'; b.style.color = ''; }
+      } catch (e) { }
+    }, 10000);
+
+    // ── Init ───────────────────────────────────────────────────────────────────
     loadConfig();
-  } catch(e) {
-    toast('Save failed: ' + e.message, 'error');
-  } finally {
-    setLoading('cfg-save-inner', false, 'Save Config');
-  }
-}
-
-async function verifyLaravel() {
-  setLoading('cfg-verify-inner', true);
-  const fb = document.getElementById('cfg-feedback');
-  fb.innerHTML = '';
-  try {
-    const r = await fetch('/api/verify-laravel');
-    const d = await r.json();
-    if (d.ok) {
-      fb.innerHTML = `<span style="color:var(--accent)">✅ ${d.message}</span>`;
-    } else {
-      fb.innerHTML = `<span style="color:var(--warn)">❌ ${d.error}</span>`;
-    }
-  } catch(e) {
-    fb.innerHTML = `<span style="color:var(--warn)">❌ ${e.message}</span>`;
-  } finally {
-    setLoading('cfg-verify-inner', false, 'Verify Connection');
-  }
-}
-
-// ── Utility ────────────────────────────────────────────────────────────────
-function copyText(txt) {
-  navigator.clipboard.writeText(txt).then(() => toast(`Copied: ${txt}`, 'success'));
-}
-
-// ── Init ───────────────────────────────────────────────────────────────────
-loadConfig();
-loadAssigned();
-</script>
+    loadAssigned();
+  </script>
 </body>
+
 </html>

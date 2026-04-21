@@ -1,0 +1,19 @@
+{
+  "printers": {
+    "1-standard": {
+      "id": "1-standard",
+      "assignedAt": "2026-04-19T06:42:00.126Z",
+      "role": "standard",
+      "printerType": "standard_a4",
+      "printer_type": "a4",
+      "connection_type": "driver",
+      "connection": "winspooler",
+      "label": "Canon LBP2900",
+      "ip": null,
+      "port": null,
+      "os_name": "Canon LBP2900",
+      "usb_path": null,
+      "windowsPrinterName": "Canon LBP2900"
+    }
+  }
+}
